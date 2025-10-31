@@ -41,9 +41,17 @@ class Settings(BaseSettings):
     # CORS settings
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     
+    # Optional: Fake data generator settings (not used by main app)
+    GITHUB_USERNAME: Optional[str] = None
+    GITHUB_TOKEN: Optional[str] = None
+    JIRA_URL: Optional[str] = None
+    JIRA_EMAIL: Optional[str] = None
+    JIRA_API_TOKEN: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
+        extra = "ignore"  # Ignore extra fields in .env that aren't defined here
     
     def get_cors_origins(self) -> list[str]:
         """Parse CORS origins from comma-separated string"""
