@@ -1,0 +1,9 @@
+autopm_venv/
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.vscode/
+.idea/
+logs/
+instance/
