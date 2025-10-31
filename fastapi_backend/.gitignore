@@ -1,9 +1,28 @@
 autopm_venv/
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
 .env
 .DS_Store
 .vscode/
 .idea/
 logs/
 instance/
+
+# SQLite database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+venv/
+env/
+ENV/
