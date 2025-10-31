@@ -2,14 +2,19 @@
 OAuth2 integration service for GitHub and Jira
 """
 from typing import Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 import httpx
+import logging
 from models.integration_token import IntegrationToken
 from models.user import User
 from utils.encryption import encrypt_token, decrypt_token
 from config import settings
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 async def exchange_github_code(code: str) -> Dict[str, Any]:
@@ -87,23 +92,34 @@ async def exchange_jira_code(code: str) -> Dict[str, Any]:
     Raises:
         HTTPException: If token exchange fails
     """
+    logger.info(f"Exchanging Jira code for token. Code length: {len(code)}")
+    logger.info(f"Jira Client ID: {settings.JIRA_CLIENT_ID[:10]}...")
+    logger.info(f"Jira Redirect URI: {settings.JIRA_REDIRECT_URI}")
+    
     async with httpx.AsyncClient() as client:
+        payload = {
+            "grant_type": "authorization_code",
+            "client_id": settings.JIRA_CLIENT_ID,
+            "client_secret": settings.JIRA_CLIENT_SECRET,
+            "code": code,
+            "redirect_uri": settings.JIRA_REDIRECT_URI
+        }
+        logger.info(f"Request payload (without secret): {dict((k, v) for k, v in payload.items() if k != 'client_secret')}")
+        
         response = await client.post(
             "https://auth.atlassian.com/oauth/token",
             headers={"Content-Type": "application/json"},
-            json={
-                "grant_type": "authorization_code",
-                "client_id": settings.JIRA_CLIENT_ID,
-                "client_secret": settings.JIRA_CLIENT_SECRET,
-                "code": code,
-                "redirect_uri": settings.JIRA_REDIRECT_URI
-            }
+            json=payload
         )
         
+        logger.info(f"Jira token exchange response status: {response.status_code}")
+        logger.info(f"Jira token exchange response body: {response.text}")
+        
         if response.status_code != 200:
+            logger.error(f"Failed to exchange Jira code. Status: {response.status_code}, Body: {response.text}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to exchange Jira code for token"
+                detail=f"Failed to exchange Jira code for token: {response.text}"
             )
         
         return response.json()
@@ -119,13 +135,18 @@ async def get_jira_user_info(access_token: str) -> Dict[str, Any]:
     Returns:
         Dictionary containing Jira user information
     """
+    logger.info("Fetching Jira user info")
     async with httpx.AsyncClient() as client:
         response = await client.get(
             "https://api.atlassian.com/me",
             headers={"Authorization": f"Bearer {access_token}"}
         )
         
+        logger.info(f"Jira user info response status: {response.status_code}")
+        logger.info(f"Jira user info response body: {response.text}")
+        
         if response.status_code != 200:
+            logger.error(f"Failed to get Jira user info. Status: {response.status_code}, Body: {response.text}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Failed to fetch Jira user information"
@@ -206,20 +227,29 @@ async def connect_jira(db: Session, user: User, code: str) -> IntegrationToken:
     Returns:
         Created or updated IntegrationToken object
     """
+    logger.info(f"Starting Jira connection for user: {user.email}")
+    logger.info(f"Received Jira code (first 20 chars): {code[:20]}...")
+    
     # Exchange code for token
     token_data = await exchange_jira_code(code)
+    logger.info(f"Token data keys: {token_data.keys()}")
+    
     access_token = token_data.get("access_token")
     refresh_token = token_data.get("refresh_token")
     expires_in = token_data.get("expires_in")
     
     if not access_token:
+        logger.error(f"No access token in response. Full response: {token_data}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No access token received from Jira"
         )
     
+    logger.info(f"Access token received (length: {len(access_token)})")
+    
     # Get Jira user info
     jira_user = await get_jira_user_info(access_token)
+    logger.info(f"Jira user info: {jira_user}")
     
     # Encrypt tokens before storing
     encrypted_access_token = encrypt_token(access_token)
@@ -228,7 +258,7 @@ async def connect_jira(db: Session, user: User, code: str) -> IntegrationToken:
     # Calculate expiration time
     token_expires_at = None
     if expires_in:
-        token_expires_at = datetime.utcnow() + datetime.timedelta(seconds=expires_in)
+        token_expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
     
     # Check if integration already exists
     existing_integration = db.query(IntegrationToken).filter(

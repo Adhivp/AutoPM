@@ -28,8 +28,16 @@ const Profile = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
     const provider = urlParams.get('provider');
+    const error = urlParams.get('error');
     
-    if (code && provider) {
+    if (error) {
+      if (error === 'oauth_failed') {
+        setError('OAuth authorization failed or was cancelled. Please try again.');
+      } else if (error === 'missing_params') {
+        setError('Invalid OAuth callback. Missing required parameters.');
+      }
+      window.history.replaceState({}, document.title, '/profile');
+    } else if (code && provider) {
       handleOAuthCallback(code, provider);
     }
   }, []);
@@ -47,19 +55,26 @@ const Profile = () => {
 
   const handleConnect = async (provider) => {
     try {
+      console.log(`[Profile] Starting ${provider} connection...`);
       setError('');
       setConnectingProvider(provider);
       
       let response;
       if (provider === 'github') {
+        console.log('[Profile] Fetching GitHub OAuth URL...');
         response = await integrationAPI.getGithubUrl();
       } else if (provider === 'jira') {
+        console.log('[Profile] Fetching Jira OAuth URL...');
         response = await integrationAPI.getJiraUrl();
       }
+      
+      console.log(`[Profile] OAuth URL received:`, response.data.url);
       
       // Redirect to OAuth provider
       window.location.href = response.data.url;
     } catch (err) {
+      console.error(`[Profile] Error connecting ${provider}:`, err);
+      console.error('[Profile] Error details:', err.response?.data);
       setError(`Failed to connect ${provider}. Please try again.`);
       setConnectingProvider(null);
     }
@@ -67,12 +82,19 @@ const Profile = () => {
 
   const handleOAuthCallback = async (code, provider) => {
     try {
+      console.log(`[Profile] OAuth callback received for ${provider}`);
+      console.log(`[Profile] Code (first 20 chars): ${code.substring(0, 20)}...`);
+      
       setConnectingProvider(provider);
       
       if (provider === 'github') {
-        await integrationAPI.connectGithub(code);
+        console.log('[Profile] Sending GitHub code to backend...');
+        const response = await integrationAPI.connectGithub(code);
+        console.log('[Profile] GitHub connection response:', response);
       } else if (provider === 'jira') {
-        await integrationAPI.connectJira(code);
+        console.log('[Profile] Sending Jira code to backend...');
+        const response = await integrationAPI.connectJira(code);
+        console.log('[Profile] Jira connection response:', response);
       }
       
       setSuccess(`Successfully connected ${provider}!`);
@@ -81,6 +103,9 @@ const Profile = () => {
       window.history.replaceState({}, document.title, '/profile');
       await loadIntegrations();
     } catch (err) {
+      console.error(`[Profile] Error in OAuth callback for ${provider}:`, err);
+      console.error('[Profile] Error response:', err.response?.data);
+      console.error('[Profile] Error status:', err.response?.status);
       setError(`Failed to complete ${provider} connection. Please try again.`);
     } finally {
       setConnectingProvider(null);

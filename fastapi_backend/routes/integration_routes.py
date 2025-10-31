@@ -5,11 +5,16 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
+import logging
 from database import get_db
 from models.user import User
 from models.integration_token import IntegrationToken
 from services import integration_service
 from routes.auth_routes import get_current_user
+
+# Configure logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 router = APIRouter(prefix="/integrations", tags=["integrations"])
 
@@ -64,7 +69,15 @@ async def connect_github(
     Returns:
         Created/updated integration token information
     """
-    integration = await integration_service.connect_github(db, current_user, callback_data.code)
+    logger.info(f"GitHub connect request from user: {current_user.email}")
+    logger.info(f"Code received (first 20 chars): {callback_data.code[:20]}...")
+    
+    try:
+        integration = await integration_service.connect_github(db, current_user, callback_data.code)
+        logger.info(f"Successfully connected GitHub for user: {current_user.email}")
+    except Exception as e:
+        logger.error(f"Error connecting GitHub: {str(e)}", exc_info=True)
+        raise
     
     return {
         "id": integration.id,
@@ -99,7 +112,15 @@ async def connect_jira(
     Returns:
         Created/updated integration token information
     """
-    integration = await integration_service.connect_jira(db, current_user, callback_data.code)
+    logger.info(f"Jira connect request from user: {current_user.email}")
+    logger.info(f"Code received (first 20 chars): {callback_data.code[:20]}...")
+    
+    try:
+        integration = await integration_service.connect_jira(db, current_user, callback_data.code)
+        logger.info(f"Successfully connected Jira for user: {current_user.email}")
+    except Exception as e:
+        logger.error(f"Error connecting Jira: {str(e)}", exc_info=True)
+        raise
     
     return {
         "id": integration.id,
@@ -253,7 +274,7 @@ async def get_jira_oauth_url():
         f"https://auth.atlassian.com/authorize"
         f"?audience=api.atlassian.com"
         f"&client_id={settings.JIRA_CLIENT_ID}"
-        f"&scope=read:jira-user read:jira-work write:jira-work"
+        f"&scope=read:me read:jira-user read:jira-work write:jira-work offline_access"
         f"&redirect_uri={settings.JIRA_REDIRECT_URI}"
         f"&response_type=code"
         f"&prompt=consent"

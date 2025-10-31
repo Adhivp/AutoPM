@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
+import OAuthCallback from './pages/OAuthCallback';
 import './App.css';
 
 function App() {
@@ -36,6 +37,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Profile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/callback/:provider"
+                  element={
+                    <ProtectedRoute>
+                      <OAuthCallback />
                     </ProtectedRoute>
                   }
                 />
