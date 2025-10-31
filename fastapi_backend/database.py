@@ -43,6 +43,11 @@ def init_db():
     """
     # Import all models to ensure they're registered
     from models import User, IntegrationToken
+    from models.database_models import (
+        ProjectMetadata, EmployeeProfile, JiraTask, GitHubActivity,
+        ResourceAllocation, TeamCommunicationLog, HistoricalProjectPerformance,
+        TaskDependency
+    )
     
     # Create all tables
     Base.metadata.create_all(bind=engine)

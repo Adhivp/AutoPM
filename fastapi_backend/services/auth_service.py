@@ -3,10 +3,56 @@ Authentication service for user registration, login, and token management
 """
 from typing import Optional
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from models.user import User, UserRole
 from utils.password import hash_password, verify_password
-from utils.jwt_handler import create_access_token
+from utils.jwt_handler import create_access_token, verify_token
+from database import get_db
+
+# HTTP Bearer scheme for JWT token authentication (used by FastAPI Depends)
+security = HTTPBearer()
+
+
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> User:
+    """
+    Dependency to get current authenticated user from JWT token.
+
+    This is defined here so other modules (routes/data_routes.py, sync, etc.) can import
+    the shared dependency rather than duplicating the logic.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    token = None
+    if credentials and hasattr(credentials, 'credentials'):
+        token = credentials.credentials
+
+    if not token:
+        raise credentials_exception
+
+    payload = verify_token(token)
+    if payload is None:
+        raise credentials_exception
+
+    user_id: int = payload.get("user_id")
+    if user_id is None:
+        raise credentials_exception
+
+    user = get_user_by_id(db, user_id)
+    if user is None:
+        raise credentials_exception
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive"
+        )
+
+    return user
 
 
 def register_user(db: Session, email: str, password: str, full_name: str, role: UserRole = UserRole.MEMBER) -> User:

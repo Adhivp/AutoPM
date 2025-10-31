@@ -29,3 +29,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         True if password matches, False otherwise
     """
     return hash_password(plain_password) == hashed_password
+
+
+# Alias for backward compatibility
+get_password_hash = hash_password

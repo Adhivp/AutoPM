@@ -6,8 +6,35 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from config import settings
-from database import init_db
-from routes import auth_routes, integration_routes
+from database import init_db, SessionLocal
+from routes import auth_routes, integration_routes, data_routes, sync_routes
+from routes import debug_routes
+import asyncio
+from services.sync_service import sync_all_projects
+
+
+# Background sync task
+async def periodic_sync():
+    """Run sync every 1 minute"""
+    while True:
+        try:
+            print("⏰ Starting periodic sync...")
+            db = SessionLocal()
+            try:
+                results = sync_all_projects(db)
+                if results.get('status') == 'success':
+                    github_synced = results.get('github_prs_synced', 0)
+                    jira_synced = results.get('jira_issues_synced', 0)
+                    print(f"✓ Periodic sync completed: {github_synced} PRs, {jira_synced} issues")
+                else:
+                    print(f"✗ Periodic sync error: {results.get('message')}")
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"✗ Periodic sync error: {str(e)}")
+        
+        # Wait for 1 minute (60 seconds)
+        await asyncio.sleep(60)
 
 
 @asynccontextmanager
@@ -19,12 +46,23 @@ async def lifespan(app: FastAPI):
     # Startup: Initialize database
     print("🚀 Starting AutoPM Backend...")
     init_db()
+    print("✅ Database initialized!")
+    
+    # Start background sync task
+    print("🔄 Starting background sync (every 1 minute)...")
+    sync_task = asyncio.create_task(periodic_sync())
     print("✅ AutoPM Backend is ready!")
     
     yield
     
     # Shutdown
-    print("👋 Shutting down AutoPM Backend...")
+    print("⏹ Stopping background sync...")
+    sync_task.cancel()
+    try:
+        await sync_task
+    except asyncio.CancelledError:
+        pass
+    print("👋 AutoPM Backend shutdown complete")
 
 
 # Create FastAPI application
@@ -47,6 +85,9 @@ app.add_middleware(
 # Include routers
 app.include_router(auth_routes.router)
 app.include_router(integration_routes.router)
+app.include_router(data_routes.router)
+app.include_router(sync_routes.router)
+app.include_router(debug_routes.router)
 
 
 @app.get("/")
