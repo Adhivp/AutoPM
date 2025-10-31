@@ -30,6 +30,7 @@ class ProjectMetadata(Base):
     team_lead = relationship("EmployeeProfile", foreign_keys=[team_lead_id], back_populates="led_projects")
     jira_tasks = relationship("JiraTask", back_populates="project", cascade="all, delete-orphan")
     github_activities = relationship("GitHubActivity", back_populates="project", cascade="all, delete-orphan")
+    github_issues = relationship("GitHubIssue", back_populates="project", cascade="all, delete-orphan")
     resource_allocations = relationship("ResourceAllocation", back_populates="project", cascade="all, delete-orphan")
     communication_logs = relationship("TeamCommunicationLog", back_populates="project", cascade="all, delete-orphan")
 
@@ -58,6 +59,7 @@ class EmployeeProfile(Base):
     led_projects = relationship("ProjectMetadata", foreign_keys=[ProjectMetadata.team_lead_id], back_populates="team_lead")
     assigned_tasks = relationship("JiraTask", back_populates="assignee")
     authored_prs = relationship("GitHubActivity", back_populates="author")
+    authored_issues = relationship("GitHubIssue", back_populates="author")
     resource_allocations = relationship("ResourceAllocation", back_populates="employee", cascade="all, delete-orphan")
     sent_messages = relationship("TeamCommunicationLog", back_populates="sender", cascade="all, delete-orphan")
 
@@ -120,6 +122,32 @@ class GitHubActivity(Base):
     project = relationship("ProjectMetadata", back_populates="github_activities")
     author = relationship("EmployeeProfile", back_populates="authored_prs")
     associated_issue = relationship("JiraTask", back_populates="github_activities")
+    associated_github_issue = relationship("GitHubIssue", back_populates="associated_pr")
+
+
+class GitHubIssue(Base):
+    """GitHub Issues - Track GitHub issues separately from PRs"""
+    __tablename__ = "github_issues"
+    
+    issue_id = Column(String(100), primary_key=True)  # "repo/Issue#789"
+    project_id = Column(String(100), ForeignKey('project_metadata.project_id'), nullable=False)
+    title = Column(String(500))
+    author_id = Column(String(100), ForeignKey('employee_profile.employee_id'))
+    assignees = Column(JSON)  # Array of employee_ids
+    created_at = Column(DateTime)
+    closed_at = Column(DateTime)
+    status = Column(String(50), CheckConstraint("status IN ('Open', 'Closed')"))
+    labels = Column(JSON)  # Array of label names
+    issue_type = Column(String(50), CheckConstraint("issue_type IN ('Bug', 'Feature', 'Enhancement', 'Question', 'Documentation')"))
+    priority = Column(String(50), CheckConstraint("priority IN ('Low', 'Medium', 'High', 'Critical')"))
+    associated_pr_id = Column(String(100), ForeignKey('github_activity.pr_id'))
+    comments_count = Column(Integer, default=0)
+    last_synced_at = Column(DateTime, default=func.now())
+    
+    # Relationships
+    project = relationship("ProjectMetadata", back_populates="github_issues")
+    author = relationship("EmployeeProfile", back_populates="authored_issues")
+    associated_pr = relationship("GitHubActivity", back_populates="associated_github_issue")
 
 
 class ResourceAllocation(Base):

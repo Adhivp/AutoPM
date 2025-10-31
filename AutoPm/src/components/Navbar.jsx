@@ -65,6 +65,12 @@ const Navbar = () => {
                   GitHub PRs
                 </Link>
                 <Link 
+                  to="/github-issues" 
+                  className="text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  GitHub Issues
+                </Link>
+                <Link 
                   to="/sync" 
                   className="text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
@@ -175,6 +181,13 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     GitHub PRs
+                  </Link>
+                  <Link
+                    to="/github-issues"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    GitHub Issues
                   </Link>
                   <Link
                     to="/sync"

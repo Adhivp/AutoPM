@@ -14,6 +14,7 @@ import Projects from './pages/Projects';
 import Employees from './pages/Employees';
 import Tasks from './pages/Tasks';
 import GitHubPRs from './pages/GitHubPRs';
+import GitHubIssues from './pages/GitHubIssues';
 import SyncManagement from './pages/SyncManagement';
 import './App.css';
 
@@ -82,6 +83,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <GitHubPRs />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/github-issues"
+                  element={
+                    <ProtectedRoute>
+                      <GitHubIssues />
                     </ProtectedRoute>
                   }
                 />

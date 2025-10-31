@@ -20,7 +20,8 @@ sync_status_data: Dict[str, Any] = {
     'last_jira_sync': None,
     'github_sync_status': 'idle',
     'jira_sync_status': 'idle',
-    'github_synced_items': 0,
+    'github_prs_synced': 0,
+    'github_issues_synced': 0,
     'jira_synced_items': 0,
     'errors': []
 }
@@ -42,7 +43,8 @@ def perform_sync(db: Session):
         # Update status with results
         sync_status_data['last_github_sync'] = datetime.utcnow()
         sync_status_data['last_jira_sync'] = datetime.utcnow()
-        sync_status_data['github_synced_items'] = results.get('github_prs_synced', 0)
+        sync_status_data['github_prs_synced'] = results.get('github_prs_synced', 0)
+        sync_status_data['github_issues_synced'] = results.get('github_issues_synced', 0)
         sync_status_data['jira_synced_items'] = results.get('jira_issues_synced', 0)
         sync_status_data['errors'] = results.get('errors', [])
         
@@ -54,7 +56,7 @@ def perform_sync(db: Session):
             sync_status_data['github_sync_status'] = 'error'
             sync_status_data['jira_sync_status'] = 'error'
 
-        print(f"✓ Sync completed: {results.get('github_prs_synced', 0)} PRs, {results.get('jira_issues_synced', 0)} issues")
+        print(f"✓ Sync completed: {results.get('github_prs_synced', 0)} PRs, {results.get('github_issues_synced', 0)} issues, {results.get('jira_issues_synced', 0)} Jira issues")
 
     except Exception as e:
         sync_status_data['github_sync_status'] = 'error'

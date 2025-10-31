@@ -124,6 +124,35 @@ CREATE INDEX idx_github_status ON github_activity(status);
 CREATE INDEX idx_github_issue ON github_activity(associated_issue_id);
 
 -- ============================================================================
+-- 4.5. GITHUB ISSUES
+-- ============================================================================
+CREATE TABLE github_issues (
+    issue_id VARCHAR(100) PRIMARY KEY,  -- Format: "repo/Issue#789"
+    project_id VARCHAR(100) NOT NULL,
+    title VARCHAR(500),
+    author_id VARCHAR(100),
+    assignees JSON,  -- Array of employee_ids
+    created_at TIMESTAMP,
+    closed_at TIMESTAMP,
+    status VARCHAR(50) CHECK (status IN ('Open', 'Closed')),
+    labels JSON,  -- Array of label names
+    issue_type VARCHAR(50) CHECK (issue_type IN ('Bug', 'Feature', 'Enhancement', 'Question', 'Documentation')),
+    priority VARCHAR(50) CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')),
+    associated_pr_id VARCHAR(100),  -- Links to GitHub PR
+    comments_count INT DEFAULT 0,
+    last_synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (project_id) REFERENCES project_metadata(project_id) ON DELETE CASCADE,
+    FOREIGN KEY (author_id) REFERENCES employee_profile(employee_id) ON DELETE SET NULL,
+    FOREIGN KEY (associated_pr_id) REFERENCES github_activity(pr_id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_github_issues_project ON github_issues(project_id);
+CREATE INDEX idx_github_issues_author ON github_issues(author_id);
+CREATE INDEX idx_github_issues_status ON github_issues(status);
+CREATE INDEX idx_github_issues_type ON github_issues(issue_type);
+CREATE INDEX idx_github_issues_priority ON github_issues(priority);
+
+-- ============================================================================
 -- 5. RESOURCE ALLOCATION & TIME TRACKING
 -- ============================================================================
 CREATE TABLE resource_allocation (

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from models.database_models import (
-    ProjectMetadata, EmployeeProfile, JiraTask, GitHubActivity,
+    ProjectMetadata, EmployeeProfile, JiraTask, GitHubActivity, GitHubIssue,
     ResourceAllocation, TeamCommunicationLog, HistoricalProjectPerformance,
     TaskDependency
 )
@@ -15,6 +15,7 @@ from models.schemas import (
     EmployeeResponse, EmployeeCreate, EmployeeWithStats,
     JiraTaskResponse, JiraTaskCreate, JiraTaskWithDetails,
     GitHubActivityResponse, GitHubActivityCreate, GitHubActivityWithDetails,
+    GitHubIssueResponse, GitHubIssueCreate, GitHubIssueWithDetails,
     ResourceAllocationResponse, ResourceAllocationCreate,
     TeamCommunicationResponse, TeamCommunicationCreate,
     HistoricalPerformanceResponse, HistoricalPerformanceCreate,
@@ -326,6 +327,73 @@ def get_pull_request(
     
     return {
         **pr.__dict__,
+        'author_name': author_name,
+        'project_name': project_name
+    }
+
+
+# ============================================================================
+# GITHUB ISSUES ENDPOINTS
+# ============================================================================
+
+@router.get("/github/issues", response_model=List[GitHubIssueWithDetails])
+def get_all_github_issues(
+    project_id: str = None,
+    author_id: str = None,
+    status: str = None,
+    issue_type: str = None,
+    priority: str = None,
+    db: Session = Depends(get_db),
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Get all GitHub issues with optional filters"""
+    query = db.query(GitHubIssue)
+    
+    if project_id:
+        query = query.filter(GitHubIssue.project_id == project_id)
+    if author_id:
+        query = query.filter(GitHubIssue.author_id == author_id)
+    if status:
+        query = query.filter(GitHubIssue.status == status)
+    if issue_type:
+        query = query.filter(GitHubIssue.issue_type == issue_type)
+    if priority:
+        query = query.filter(GitHubIssue.priority == priority)
+    
+    issues = query.all()
+    
+    result = []
+    for issue in issues:
+        author_name = issue.author.name if issue.author else None
+        project_name = issue.project.project_name if issue.project else None
+        
+        issue_dict = {
+            **issue.__dict__,
+            'author_name': author_name,
+            'project_name': project_name
+        }
+        result.append(issue_dict)
+    
+    return result
+
+
+@router.get("/github/issues/{issue_id}", response_model=GitHubIssueWithDetails)
+def get_github_issue(
+    issue_id: str,
+    db: Session = Depends(get_db),
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Get a specific GitHub issue by ID"""
+    issue = db.query(GitHubIssue).filter(GitHubIssue.issue_id == issue_id).first()
+    
+    if not issue:
+        raise HTTPException(status_code=404, detail="GitHub issue not found")
+    
+    author_name = issue.author.name if issue.author else None
+    project_name = issue.project.project_name if issue.project else None
+    
+    return {
+        **issue.__dict__,
         'author_name': author_name,
         'project_name': project_name
     }

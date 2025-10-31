@@ -232,6 +232,56 @@ class GitHubActivityWithDetails(GitHubActivityResponse):
 
 
 # ============================================================================
+# GITHUB ISSUE SCHEMAS
+# ============================================================================
+
+class GitHubIssueType(str, Enum):
+    BUG = "Bug"
+    FEATURE = "Feature"
+    ENHANCEMENT = "Enhancement"
+    QUESTION = "Question"
+    DOCUMENTATION = "Documentation"
+
+
+class GitHubIssueStatus(str, Enum):
+    OPEN = "Open"
+    CLOSED = "Closed"
+
+
+class GitHubIssueBase(BaseModel):
+    title: Optional[str] = None
+    author_id: Optional[str] = None
+    assignees: Optional[List[str]] = []
+    status: Optional[GitHubIssueStatus] = GitHubIssueStatus.OPEN
+    labels: Optional[List[str]] = []
+    issue_type: Optional[GitHubIssueType] = GitHubIssueType.BUG
+    priority: Optional[Priority] = Priority.MEDIUM
+    associated_pr_id: Optional[str] = None
+
+
+class GitHubIssueCreate(GitHubIssueBase):
+    issue_id: str
+    project_id: str
+
+
+class GitHubIssueResponse(GitHubIssueBase):
+    issue_id: str
+    project_id: str
+    created_at: Optional[datetime] = None
+    closed_at: Optional[datetime] = None
+    comments_count: int = 0
+    last_synced_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class GitHubIssueWithDetails(GitHubIssueResponse):
+    author_name: Optional[str] = None
+    project_name: Optional[str] = None
+
+
+# ============================================================================
 # RESOURCE ALLOCATION SCHEMAS
 # ============================================================================
 

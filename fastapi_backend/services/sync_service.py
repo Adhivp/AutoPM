@@ -9,7 +9,7 @@ from github import Github, GithubException
 import requests
 from sqlalchemy.orm import Session
 from models.database_models import (
-    ProjectMetadata, JiraTask, GitHubActivity, EmployeeProfile
+    ProjectMetadata, JiraTask, GitHubActivity, EmployeeProfile, GitHubIssue
 )
 from utils.encryption import decrypt_token
 
@@ -161,6 +161,145 @@ class GitHubSyncService:
         
         return synced_count
     
+    def sync_issues(self, db: Session, project: ProjectMetadata) -> int:
+        """Sync GitHub issues for a given project"""
+        if not project.github_repo_name:
+            return 0
+        
+        synced_count = 0
+        try:
+            # Support full repo name (owner/repo) or just repo name (assume current user)
+            if '/' in project.github_repo_name:
+                repo_full_name = project.github_repo_name
+            else:
+                repo_full_name = f"{self.user.login}/{project.github_repo_name}"
+            repo = self.gh.get_repo(repo_full_name)
+            
+            # Fetch all issues (open and closed, excluding PRs)
+            issues = repo.get_issues(state='all', sort='updated', direction='desc')
+            
+            for issue in issues[:50]:  # Limit to last 50 issues for performance
+                # Skip if it's a pull request
+                if issue.pull_request:
+                    continue
+                    
+                try:
+                    # Map GitHub username to employee_id
+                    author_username = issue.user.login if issue.user else None
+                    author = db.query(EmployeeProfile).filter(
+                        EmployeeProfile.github_username == author_username
+                    ).first() if author_username else None
+                    
+                    # Get assignees
+                    assignees = []
+                    for assignee in issue.assignees:
+                        emp = db.query(EmployeeProfile).filter(
+                            EmployeeProfile.github_username == assignee.login
+                        ).first()
+                        if emp:
+                            assignees.append(emp.employee_id)
+                    
+                    # Determine issue status
+                    status = "Open" if issue.state == "open" else "Closed"
+                    
+                    # Map GitHub labels to issue type and priority
+                    issue_type = "Bug"  # Default
+                    priority = "Medium"  # Default
+                    labels = []
+                    
+                    for label in issue.labels:
+                        label_name = label.name.lower()
+                        labels.append(label.name)
+                        
+                        # Map common label patterns to types
+                        if any(keyword in label_name for keyword in ['bug', 'fix', 'error']):
+                            issue_type = "Bug"
+                        elif any(keyword in label_name for keyword in ['feature', 'enhancement']):
+                            issue_type = "Feature"
+                        elif any(keyword in label_name for keyword in ['documentation', 'docs']):
+                            issue_type = "Documentation"
+                        elif any(keyword in label_name for keyword in ['question', 'help']):
+                            issue_type = "Question"
+                        
+                        # Map priority labels
+                        if any(keyword in label_name for keyword in ['critical', 'urgent', 'p0']):
+                            priority = "Critical"
+                        elif any(keyword in label_name for keyword in ['high', 'important', 'p1']):
+                            priority = "High"
+                        elif any(keyword in label_name for keyword in ['low', 'minor', 'p3']):
+                            priority = "Low"
+                    
+                    # Check if this issue is associated with a PR
+                    associated_pr_id = None
+                    try:
+                        # Look for PRs that reference this issue
+                        prs = repo.get_pulls(state='all')
+                        for pr in prs:
+                            if pr.body and f"#{issue.number}" in pr.body:
+                                associated_pr_id = f"{project.github_repo_name}/PR#{pr.number}"
+                                break
+                            elif pr.title and f"#{issue.number}" in pr.title:
+                                associated_pr_id = f"{project.github_repo_name}/PR#{pr.number}"
+                                break
+                    except:
+                        pass
+                    
+                    # Create or update GitHub issue
+                    issue_id = f"{project.github_repo_name}/Issue#{issue.number}"
+                    existing = db.query(GitHubIssue).filter(
+                        GitHubIssue.issue_id == issue_id
+                    ).first()
+                    
+                    if existing:
+                        # Update existing
+                        existing.title = issue.title
+                        existing.author_id = author.employee_id if author else None
+                        existing.assignees = assignees
+                        existing.status = status
+                        existing.labels = labels
+                        existing.issue_type = issue_type
+                        existing.priority = priority
+                        existing.associated_pr_id = associated_pr_id
+                        existing.comments_count = issue.comments
+                        existing.closed_at = issue.closed_at
+                        existing.last_synced_at = datetime.utcnow()
+                    else:
+                        # Create new
+                        new_issue = GitHubIssue(
+                            issue_id=issue_id,
+                            project_id=project.project_id,
+                            title=issue.title,
+                            author_id=author.employee_id if author else None,
+                            assignees=assignees,
+                            created_at=issue.created_at,
+                            closed_at=issue.closed_at,
+                            status=status,
+                            labels=labels,
+                            issue_type=issue_type,
+                            priority=priority,
+                            associated_pr_id=associated_pr_id,
+                            comments_count=issue.comments,
+                            last_synced_at=datetime.utcnow()
+                        )
+                        db.add(new_issue)
+                    
+                    synced_count += 1
+                    
+                except Exception as e:
+                    print(f"Error syncing Issue #{issue.number}: {str(e)}")
+                    continue
+            
+            db.commit()
+            
+        except GithubException as e:
+            print(f"GitHub API error for {project.github_repo_name}: {str(e)}")
+            return 0
+        except Exception as e:
+            print(f"Error syncing GitHub issues: {str(e)}")
+            return 0
+        
+        return synced_count
+    
     def _extract_jira_issue_id(self, title: str, body: Optional[str]) -> Optional[str]:
         """Extract Jira issue ID from PR title or body"""
         import re
@@ -238,7 +377,7 @@ class JiraSyncService:
             
             while True:
                 response = self.session.get(
-                    f"{self.url}/rest/api/3/search",
+                    f"{self.url}/rest/api/3/search/jql",
                     params={
                         'jql': jql,
                         'startAt': start_at,
@@ -444,6 +583,7 @@ def sync_all_projects(db: Session) -> Dict[str, Any]:
         'timestamp': datetime.utcnow().isoformat(),
         'projects_synced': 0,
         'github_prs_synced': 0,
+        'github_issues_synced': 0,
         'jira_issues_synced': 0,
         'errors': []
     }
@@ -452,8 +592,13 @@ def sync_all_projects(db: Session) -> Dict[str, Any]:
         try:
             # Sync GitHub PRs
             if project.github_repo_name:
-                github_count = github_service.sync_pull_requests(db, project)
-                results['github_prs_synced'] += github_count
+                github_pr_count = github_service.sync_pull_requests(db, project)
+                results['github_prs_synced'] += github_pr_count
+            
+            # Sync GitHub issues
+            if project.github_repo_name:
+                github_issue_count = github_service.sync_issues(db, project)
+                results['github_issues_synced'] += github_issue_count
             
             # Sync Jira issues
             if project.jira_project_key:

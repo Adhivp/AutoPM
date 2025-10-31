@@ -82,6 +82,10 @@ export const dataAPI = {
   getPullRequests: (params = {}) => api.get('/api/data/github/prs', { params }),
   getPullRequest: (prId) => api.get(`/api/data/github/prs/${prId}`),
   
+  // GitHub Issues
+  getGitHubIssues: (params = {}) => api.get('/api/data/github/issues', { params }),
+  getGitHubIssue: (issueId) => api.get(`/api/data/github/issues/${issueId}`),
+  
   // Resource Allocations
   getAllocations: (params = {}) => api.get('/api/data/allocations', { params }),
   createAllocation: (data) => api.post('/api/data/allocations', data),
