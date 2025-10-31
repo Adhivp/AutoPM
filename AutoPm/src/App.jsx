@@ -10,6 +10,11 @@ import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import OAuthCallback from './pages/OAuthCallback';
+import Projects from './pages/Projects';
+import Employees from './pages/Employees';
+import Tasks from './pages/Tasks';
+import GitHubPRs from './pages/GitHubPRs';
+import SyncManagement from './pages/SyncManagement';
 import './App.css';
 
 function App() {
@@ -45,6 +50,46 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <OAuthCallback />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/projects"
+                  element={
+                    <ProtectedRoute>
+                      <Projects />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/employees"
+                  element={
+                    <ProtectedRoute>
+                      <Employees />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/tasks"
+                  element={
+                    <ProtectedRoute>
+                      <Tasks />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/github-prs"
+                  element={
+                    <ProtectedRoute>
+                      <GitHubPRs />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sync"
+                  element={
+                    <ProtectedRoute>
+                      <SyncManagement />
                     </ProtectedRoute>
                   }
                 />

@@ -1,48 +1,73 @@
-import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  TrendingUp, 
-  Users, 
+import {
+  LayoutDashboard,
+  TrendingUp,
+  Users,
   AlertCircle,
   CheckCircle,
   Clock,
   Activity
 } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { dataAPI } from '../utils/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const [stats, setStats] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const stats = [
-    {
-      icon: <LayoutDashboard className="w-8 h-8" />,
-      label: 'Active Projects',
-      value: '12',
-      change: '+3 this month',
-      color: 'bg-blue-100 text-blue-600'
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      label: 'Team Members',
-      value: '24',
-      change: '4 available',
-      color: 'bg-green-100 text-green-600'
-    },
-    {
-      icon: <AlertCircle className="w-8 h-8" />,
-      label: 'Risk Alerts',
-      value: '3',
-      change: '2 high priority',
-      color: 'bg-yellow-100 text-yellow-600'
-    },
-    {
-      icon: <TrendingUp className="w-8 h-8" />,
-      label: 'Completion Rate',
-      value: '87%',
-      change: '+5% this week',
-      color: 'bg-purple-100 text-purple-600'
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      const response = await dataAPI.getDashboardStats();
+      const dashboardData = response.data;
+
+      // Transform the data into the format expected by the UI
+      const transformedStats = [
+        {
+          icon: <LayoutDashboard className="w-8 h-8" />,
+          label: 'Total Projects',
+          value: dashboardData.total_projects?.toString() || '0',
+          change: 'Active projects',
+          color: 'bg-blue-100 text-blue-600'
+        },
+        {
+          icon: <Users className="w-8 h-8" />,
+          label: 'Team Members',
+          value: dashboardData.total_employees?.toString() || '0',
+          change: 'Active employees',
+          color: 'bg-green-100 text-green-600'
+        },
+        {
+          icon: <CheckCircle className="w-8 h-8" />,
+          label: 'Total Tasks',
+          value: dashboardData.total_tasks?.toString() || '0',
+          change: 'Across all projects',
+          color: 'bg-purple-100 text-purple-600'
+        },
+        {
+          icon: <Activity className="w-8 h-8" />,
+          label: 'Active Projects',
+          value: dashboardData.active_projects?.toString() || '0',
+          change: 'Currently in progress',
+          color: 'bg-yellow-100 text-yellow-600'
+        }
+      ];
+
+      setStats(transformedStats);
+    } catch (err) {
+      setError('Failed to fetch dashboard statistics');
+      console.error('Error fetching dashboard stats:', err);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
   const recentActivities = [
     {
@@ -116,27 +141,63 @@ const Dashboard = () => {
           variants={containerVariants}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
         >
-          {stats.map((stat, index) => (
+          {loading ? (
+            // Loading skeleton
+            Array.from({ length: 4 }).map((_, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-transparent dark:border-gray-700"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2 animate-pulse"></div>
+                    <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded mb-1 animate-pulse"></div>
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                  <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"></div>
+                </div>
+              </motion.div>
+            ))
+          ) : error ? (
             <motion.div
-              key={index}
               variants={itemVariants}
-              whileHover={{ y: -5 }}
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg dark:shadow-primary-500/10 dark:hover:shadow-primary-500/20 transition-all duration-300 border border-transparent dark:border-gray-700"
+              className="col-span-full bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6"
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
-                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
-                    {stat.value}
-                  </h3>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{stat.change}</p>
-                </div>
-                <div className={`${stat.color} p-3 rounded-lg`}>
-                  {stat.icon}
-                </div>
+              <div className="text-center">
+                <p className="text-red-600 dark:text-red-400 font-medium mb-2">Failed to load dashboard data</p>
+                <p className="text-red-500 dark:text-red-500 text-sm">{error}</p>
+                <button
+                  onClick={fetchDashboardStats}
+                  className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Retry
+                </button>
               </div>
             </motion.div>
-          ))}
+          ) : (
+            stats.map((stat, index) => (
+              <motion.div
+                key={index}
+                variants={itemVariants}
+                whileHover={{ y: -5 }}
+                className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg dark:shadow-primary-500/10 dark:hover:shadow-primary-500/20 transition-all duration-300 border border-transparent dark:border-gray-700"
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
+                    <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
+                      {stat.value}
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{stat.change}</p>
+                  </div>
+                  <div className={`${stat.color} p-3 rounded-lg`}>
+                    {stat.icon}
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          )}
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
