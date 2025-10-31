@@ -1,23 +1,20 @@
 """
-Password hashing utilities using bcrypt
+Password hashing utilities using SHA256
 """
-from passlib.context import CryptContext
-
-# Create bcrypt context for password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import hashlib
 
 
 def hash_password(password: str) -> str:
     """
-    Hash a password using bcrypt
+    Hash a password using SHA256
     
     Args:
         password: Plain text password
     
     Returns:
-        Hashed password string
+        Hashed password string (SHA256 hex digest)
     """
-    return pwd_context.hash(password)
+    return hashlib.sha256(password.encode('utf-8')).hexdigest()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -31,4 +28,4 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    return hash_password(plain_password) == hashed_password

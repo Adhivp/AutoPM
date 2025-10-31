@@ -1,8 +1,8 @@
 """
 Authentication routes for registration, login, and user management
 """
-from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import APIRouter, Depends, HTTPException, status, Body
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr
 from typing import Optional
@@ -13,8 +13,8 @@ from utils.jwt_handler import verify_token
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
-# OAuth2 scheme for JWT token authentication
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
+# HTTP Bearer scheme for JWT token authentication (works with Swagger UI Authorize button)
+security = HTTPBearer()
 
 
 # Pydantic models for request/response validation
@@ -51,12 +51,12 @@ class TokenResponse(BaseModel):
 
 
 # Dependency to get current user from JWT token
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security), db: Session = Depends(get_db)) -> User:
     """
     Get current authenticated user from JWT token
     
     Args:
-        token: JWT token from Authorization header
+        credentials: HTTP Bearer credentials from Authorization header
         db: Database session
     
     Returns:
@@ -71,6 +71,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         headers={"WWW-Authenticate": "Bearer"},
     )
     
+    token = credentials.credentials
     payload = verify_token(token)
     if payload is None:
         raise credentials_exception
@@ -137,19 +138,18 @@ async def register(user_data: UserRegister, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+async def login(login_data: UserLogin, db: Session = Depends(get_db)):
     """
     Login user and return JWT access token
     
     Args:
-        form_data: OAuth2 password request form (username=email, password)
+        login_data: User login data with email and password
         db: Database session
     
     Returns:
         JWT access token and token type
     """
-    # OAuth2PasswordRequestForm uses 'username' field, but we use it for email
-    token_data = auth_service.login_user(db, form_data.username, form_data.password)
+    token_data = auth_service.login_user(db, login_data.email, login_data.password)
     return token_data
 
 
