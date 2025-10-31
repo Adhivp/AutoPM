@@ -199,33 +199,33 @@ const Profile = () => {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="lg:col-span-1 bg-white rounded-xl shadow-md p-6"
+            className="lg:col-span-1 bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-primary-500/10 p-6 border border-transparent dark:border-gray-700"
           >
             <div className="text-center">
-              <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-purple-600 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold">
+              <div className="w-24 h-24 bg-gradient-to-br from-primary-500 to-teal-500 rounded-full mx-auto mb-4 flex items-center justify-center text-white text-3xl font-bold shadow-lg">
                 {user?.full_name?.charAt(0)?.toUpperCase() || user?.email?.charAt(0)?.toUpperCase()}
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-1">
                 {user?.full_name || 'User'}
               </h2>
-              <p className="text-gray-600 mb-4">{user?.email}</p>
+              <p className="text-gray-600 dark:text-gray-300 mb-4">{user?.email}</p>
               
               <div className="space-y-3 text-left">
                 <div className="flex items-center space-x-3 text-sm">
-                  <User className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-600">Member since {new Date().getFullYear()}</span>
+                  <User className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-600 dark:text-gray-300">Member since {new Date().getFullYear()}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
-                  <Shield className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-600 capitalize">Role: {user?.role}</span>
+                  <Shield className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-600 dark:text-gray-300 capitalize">Role: {user?.role}</span>
                 </div>
                 <div className="flex items-center space-x-3 text-sm">
-                  <Mail className="w-5 h-5 text-gray-400" />
-                  <span className="text-gray-600">Email verified</span>
+                  <Mail className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                  <span className="text-gray-600 dark:text-gray-300">Email verified</span>
                 </div>
               </div>
 
-              <button className="w-full mt-6 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+              <button className="w-full mt-6 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium">
                 Edit Profile
               </button>
             </div>
@@ -237,17 +237,17 @@ const Profile = () => {
             animate={{ opacity: 1, x: 0 }}
             className="lg:col-span-2"
           >
-            <div className="bg-white rounded-xl shadow-md p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-primary-500/10 p-6 border border-transparent dark:border-gray-700">
               <div className="mb-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">Integrations</h2>
-                <p className="text-gray-600">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Integrations</h2>
+                <p className="text-gray-600 dark:text-gray-300">
                   Connect your tools to unlock the full power of AutoPM
                 </p>
               </div>
 
               {loading ? (
                 <div className="flex justify-center py-12">
-                  <Loader className="w-8 h-8 text-primary-600 animate-spin" />
+                  <Loader className="w-8 h-8 text-primary-600 dark:text-primary-400 animate-spin" />
                 </div>
               ) : (
                 <motion.div
@@ -264,34 +264,34 @@ const Profile = () => {
                       <motion.div
                         key={integration.provider}
                         variants={itemVariants}
-                        className="border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all duration-300 integration-card"
+                        className="border border-gray-200 dark:border-gray-700 rounded-xl p-6 hover:shadow-md dark:hover:shadow-primary-500/20 transition-all duration-300 integration-card bg-gray-50 dark:bg-gray-900/50"
                       >
                         <div className="flex items-start justify-between mb-4">
                           <div className="flex items-center space-x-4">
-                            <div className={`${config.color} text-white p-3 rounded-lg flex items-center justify-center`}>
-                              {typeof config.icon === 'string' ? (
-                                <span className="text-2xl">{config.icon}</span>
-                              ) : (
-                                config.icon
-                              )}
+                            <div className="bg-white dark:bg-gray-700 p-3 rounded-lg flex items-center justify-center w-16 h-16">
+                              <img 
+                                src={config.logoSrc} 
+                                alt={`${config.name} Logo`}
+                                className="w-full h-full object-contain"
+                              />
                             </div>
                             <div>
-                              <h3 className="text-xl font-bold text-gray-900">
+                              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
                                 {config.name}
                               </h3>
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                                 {config.description}
                               </p>
                             </div>
                           </div>
 
                           {integration.connected ? (
-                            <div className="flex items-center space-x-2 text-green-600">
+                            <div className="flex items-center space-x-2 text-green-600 dark:text-green-400">
                               <CheckCircle className="w-5 h-5" />
                               <span className="text-sm font-medium">Connected</span>
                             </div>
                           ) : (
-                            <div className="flex items-center space-x-2 text-gray-400">
+                            <div className="flex items-center space-x-2 text-gray-400 dark:text-gray-500">
                               <XCircle className="w-5 h-5" />
                               <span className="text-sm font-medium">Not Connected</span>
                             </div>
@@ -299,12 +299,12 @@ const Profile = () => {
                         </div>
 
                         {integration.connected && (
-                          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                            <p className="text-sm text-gray-600">
+                          <div className="mb-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                            <p className="text-sm text-gray-600 dark:text-gray-300">
                               <strong>User ID:</strong> {integration.provider_user_id || 'N/A'}
                             </p>
                             {integration.provider_email && (
-                              <p className="text-sm text-gray-600 mt-1">
+                              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                                 <strong>Email:</strong> {integration.provider_email}
                               </p>
                             )}
@@ -312,11 +312,11 @@ const Profile = () => {
                         )}
 
                         <div className="mb-4">
-                          <p className="text-sm font-medium text-gray-700 mb-2">Features:</p>
+                          <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Features:</p>
                           <div className="grid grid-cols-2 gap-2">
                             {config.features.map((feature, idx) => (
-                              <div key={idx} className="flex items-center space-x-2 text-sm text-gray-600">
-                                <CheckCircle className="w-4 h-4 text-primary-600" />
+                              <div key={idx} className="flex items-center space-x-2 text-sm text-gray-600 dark:text-gray-300">
+                                <CheckCircle className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                                 <span>{feature}</span>
                               </div>
                             ))}
@@ -328,11 +328,11 @@ const Profile = () => {
                             <>
                               <button
                                 onClick={() => handleDisconnect(integration.provider)}
-                                className="flex-1 px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors font-medium"
+                                className="flex-1 px-4 py-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors font-medium"
                               >
                                 Disconnect
                               </button>
-                              <button className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium flex items-center justify-center space-x-2">
+                              <button className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium flex items-center justify-center space-x-2">
                                 <ExternalLink className="w-4 h-4" />
                                 <span>View Settings</span>
                               </button>
@@ -341,7 +341,7 @@ const Profile = () => {
                             <button
                               onClick={() => handleConnect(integration.provider)}
                               disabled={connectingProvider === integration.provider}
-                              className={`flex-1 px-4 py-2 ${config.color} ${config.hoverColor} text-white rounded-lg transition-colors font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed`}
+                              className="flex-1 px-4 py-2 bg-gradient-to-r from-primary-500 to-teal-500 hover:from-primary-600 hover:to-teal-600 text-white rounded-lg transition-colors font-medium flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
                             >
                               {connectingProvider === integration.provider ? (
                                 <>
@@ -368,9 +368,9 @@ const Profile = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="mt-6 p-4 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg text-center"
+                className="mt-6 p-4 bg-gradient-to-r from-primary-500/10 to-teal-500/10 dark:from-primary-500/20 dark:to-teal-500/20 border border-primary-500/30 dark:border-primary-500/40 rounded-lg text-center"
               >
-                <p className="text-gray-600 font-medium">
+                <p className="text-gray-700 dark:text-gray-200 font-medium">
                   🚀 More integrations coming soon: MS Teams, Slack, Trello, and more!
                 </p>
               </motion.div>

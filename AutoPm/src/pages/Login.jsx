@@ -38,13 +38,12 @@ const Login = () => {
       >
         {/* Logo and Header */}
         <div className="text-center">
-          <Link to="/" className="inline-flex items-center justify-center space-x-3 mb-6">
+          <Link to="/" className="inline-flex items-center justify-center mb-6">
             <img 
               src="/logo.jpeg" 
               alt="AutoPM Logo" 
-              className="h-16 w-16 rounded-lg object-cover"
+              className="h-20 w-auto rounded-lg object-cover"
             />
-            <span className="text-3xl font-bold text-primary-600 dark:text-primary-400">AutoPM</span>
           </Link>
           <h2 className="text-3xl font-bold text-gray-900 dark:text-white">Welcome back</h2>
           <p className="mt-2 text-gray-600 dark:text-gray-400">Sign in to your account</p>
@@ -81,7 +80,7 @@ const Login = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-10 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                  className="input-field pl-11 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                   placeholder="you@example.com"
                 />
               </div>
@@ -104,7 +103,7 @@ const Login = () => {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600"
+                  className="input-field pl-11 bg-white dark:bg-gray-700 text-gray-900 dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-500 dark:placeholder:text-gray-400"
                   placeholder="••••••••"
                 />
               </div>

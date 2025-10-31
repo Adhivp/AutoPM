@@ -22,15 +22,12 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center space-x-3 group">
+          <Link to="/" className="flex items-center group">
             <img 
               src="/logo.jpeg" 
               alt="AutoPM Logo" 
-              className="h-10 w-10 rounded-lg object-cover group-hover:scale-110 transition-transform duration-200"
+              className="h-12 w-auto rounded-lg object-cover group-hover:scale-105 transition-transform duration-200"
             />
-            <span className="text-2xl font-bold text-primary-600 dark:text-primary-400 group-hover:text-primary-700 dark:group-hover:text-primary-300 transition-colors">
-              AutoPM
-            </span>
           </Link>
 
           {/* Desktop Navigation */}

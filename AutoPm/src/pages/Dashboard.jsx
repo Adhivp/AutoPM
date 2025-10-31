@@ -93,7 +93,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div
@@ -101,10 +101,10 @@ const Dashboard = () => {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Welcome back, {user?.full_name || user?.email}!
           </h1>
-          <p className="text-gray-600 mt-2">
+          <p className="text-gray-600 dark:text-gray-300 mt-2">
             Here's what's happening with your projects today
           </p>
         </motion.div>
@@ -121,15 +121,15 @@ const Dashboard = () => {
               key={index}
               variants={itemVariants}
               whileHover={{ y: -5 }}
-              className="bg-white p-6 rounded-xl shadow-md hover:shadow-lg transition-all duration-300"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg dark:shadow-primary-500/10 dark:hover:shadow-primary-500/20 transition-all duration-300 border border-transparent dark:border-gray-700"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <p className="text-sm text-gray-600 mb-2">{stat.label}</p>
-                  <h3 className="text-3xl font-bold text-gray-900 mb-1">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{stat.label}</p>
+                  <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">
                     {stat.value}
                   </h3>
-                  <p className="text-xs text-gray-500">{stat.change}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{stat.change}</p>
                 </div>
                 <div className={`${stat.color} p-3 rounded-lg`}>
                   {stat.icon}
@@ -145,11 +145,11 @@ const Dashboard = () => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="lg:col-span-2 bg-white rounded-xl shadow-md p-6"
+            className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-primary-500/10 p-6 border border-transparent dark:border-gray-700"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900">Recent Activity</h2>
-              <button className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activity</h2>
+              <button className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
                 View All
               </button>
             </div>
@@ -161,19 +161,19 @@ const Dashboard = () => {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="flex items-start space-x-4 p-4 hover:bg-gray-50 rounded-lg transition-colors"
+                  className="flex items-start space-x-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
                 >
                   <div className="flex-shrink-0 mt-1">
                     {activity.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
                       {activity.title}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
                       {activity.description}
                     </p>
-                    <div className="flex items-center mt-2 text-xs text-gray-500">
+                    <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
                       <Clock className="w-3 h-3 mr-1" />
                       {activity.time}
                     </div>
@@ -188,29 +188,29 @@ const Dashboard = () => {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-xl shadow-md p-6"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-primary-500/10 p-6 border border-transparent dark:border-gray-700"
           >
-            <h2 className="text-xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
             
             <div className="space-y-3">
-              <button className="w-full text-left px-4 py-3 bg-primary-50 text-primary-700 rounded-lg hover:bg-primary-100 transition-colors font-medium">
+              <button className="w-full text-left px-4 py-3 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors font-medium">
                 Generate Report
               </button>
-              <button className="w-full text-left px-4 py-3 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors font-medium">
+              <button className="w-full text-left px-4 py-3 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors font-medium">
                 Create New Project
               </button>
-              <button className="w-full text-left px-4 py-3 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors font-medium">
+              <button className="w-full text-left px-4 py-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors font-medium">
                 Invite Team Member
               </button>
-              <button className="w-full text-left px-4 py-3 bg-yellow-50 text-yellow-700 rounded-lg hover:bg-yellow-100 transition-colors font-medium">
+              <button className="w-full text-left px-4 py-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors font-medium">
                 Review Risk Alerts
               </button>
             </div>
 
             {/* AI Insights */}
-            <div className="mt-6 p-4 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg text-white">
+            <div className="mt-6 p-4 bg-gradient-to-br from-primary-500 to-teal-500 rounded-lg text-white shadow-lg">
               <h3 className="font-semibold mb-2">AI Insight</h3>
-              <p className="text-sm text-primary-100">
+              <p className="text-sm text-primary-50">
                 Based on current velocity, 2 projects may miss their deadlines. 
                 Consider reallocating resources from Team B.
               </p>
@@ -223,13 +223,13 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="mt-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl shadow-lg p-8 text-white text-center"
+          className="mt-8 bg-gradient-to-r from-primary-500 to-teal-500 rounded-xl shadow-lg dark:shadow-primary-500/20 p-8 text-white text-center"
         >
           <h3 className="text-2xl font-bold mb-2">More Features Coming Soon!</h3>
-          <p className="text-blue-100 mb-4">
+          <p className="text-primary-50 mb-4">
             We're working on advanced AI predictions, real-time collaboration, and more integrations.
           </p>
-          <button className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          <button className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md">
             Stay Updated
           </button>
         </motion.div>
