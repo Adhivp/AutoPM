@@ -11,6 +11,7 @@ from routes import auth_routes, integration_routes, data_routes, sync_routes
 from routes import debug_routes
 import asyncio
 from services.sync_service import sync_all_projects
+from services import sync_manager
 
 
 # Background sync task
@@ -48,20 +49,28 @@ async def lifespan(app: FastAPI):
     init_db()
     print("✅ Database initialized!")
     
-    # Start background sync task
-    print("🔄 Starting background sync (every 1 minute)...")
-    sync_task = asyncio.create_task(periodic_sync())
+    # Start background sync task via sync_manager only if desired_state == 'running'
+    try:
+        desired = sync_manager.get_desired_state()
+    except Exception:
+        desired = 'running'
+
+    print(f"🔄 Desired periodic sync state on startup: {desired}")
+    if desired == 'running':
+        try:
+            sync_manager.start_periodic_sync()
+        except Exception as e:
+            print(f"⚠️ Could not start periodic sync: {str(e)}")
     print("✅ AutoPM Backend is ready!")
     
     yield
     
     # Shutdown
     print("⏹ Stopping background sync...")
-    sync_task.cancel()
     try:
-        await sync_task
-    except asyncio.CancelledError:
-        pass
+        await sync_manager.stop_periodic_sync()
+    except Exception as e:
+        print(f"⚠️ Error stopping periodic sync: {str(e)}")
     print("👋 AutoPM Backend shutdown complete")
 
 

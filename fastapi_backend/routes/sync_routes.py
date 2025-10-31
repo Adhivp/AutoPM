@@ -10,6 +10,7 @@ from models.database_models import EmployeeProfile
 from services.auth_service import get_current_user
 from datetime import datetime
 from typing import Dict, Any
+from services import sync_manager
 
 router = APIRouter(prefix="/api/sync", tags=["Synchronization"])
 
@@ -52,9 +53,9 @@ def perform_sync(db: Session):
         else:
             sync_status_data['github_sync_status'] = 'error'
             sync_status_data['jira_sync_status'] = 'error'
-        
-        print(f"✓ Sync completed: {results['github_prs_synced']} PRs, {results['jira_issues_synced']} issues")
-        
+
+        print(f"✓ Sync completed: {results.get('github_prs_synced', 0)} PRs, {results.get('jira_issues_synced', 0)} issues")
+
     except Exception as e:
         sync_status_data['github_sync_status'] = 'error'
         sync_status_data['jira_sync_status'] = 'error'
@@ -85,6 +86,29 @@ async def trigger_sync(
         'message': 'Sync started in background',
         'status': sync_status_data
     }
+
+
+@router.post("/start")
+def start_periodic(
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Start the background periodic sync task."""
+    started = sync_manager.start_periodic_sync()
+    if started:
+        return {"message": "Periodic sync started"}
+    return {"message": "Periodic sync already running"}
+
+
+@router.post("/stop")
+async def stop_periodic(
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Stop the background periodic sync task."""
+    # stop and persist desired_state to 'stopped'
+    stopped = await sync_manager.stop_periodic_sync(set_desired=True)
+    if stopped:
+        return {"message": "Periodic sync stopped"}
+    return {"message": "Periodic sync was not running"}
 
 
 @router.get("/status", response_model=SyncStatus)

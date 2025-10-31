@@ -191,3 +191,13 @@ class TaskDependency(Base):
     # Relationships
     dependent_task = relationship("JiraTask", foreign_keys=[dependent_task_id], back_populates="dependent_tasks")
     blocking_task = relationship("JiraTask", foreign_keys=[blocking_task_id], back_populates="blocking_tasks")
+
+
+class SyncControl(Base):
+    """Control table to persist desired sync state across restarts"""
+    __tablename__ = "sync_control"
+
+    id = Column(Integer, primary_key=True, default=1)
+    desired_state = Column(String(50), CheckConstraint("desired_state IN ('running','stopped')"), nullable=False, default='running')
+    updated_by = Column(String(100), nullable=True)
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

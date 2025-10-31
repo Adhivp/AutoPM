@@ -28,7 +28,12 @@ class GitHubSyncService:
         
         synced_count = 0
         try:
-            repo = self.gh.get_repo(f"{self.user.login}/{project.github_repo_name}")
+            # Support full repo name (owner/repo) or just repo name (assume current user)
+            if '/' in project.github_repo_name:
+                repo_full_name = project.github_repo_name
+            else:
+                repo_full_name = f"{self.user.login}/{project.github_repo_name}"
+            repo = self.gh.get_repo(repo_full_name)
             
             # Fetch all pull requests (open, closed, merged)
             prs = repo.get_pulls(state='all', sort='updated', direction='desc')
@@ -64,6 +69,14 @@ class GitHubSyncService:
                     
                     # Extract Jira issue ID from PR title or body
                     associated_issue_id = self._extract_jira_issue_id(pr.title, pr.body)
+                    # If no explicit issue id found, attempt a heuristic match against Jira tasks
+                    if not associated_issue_id:
+                        try:
+                            candidate = self._find_similar_jira_task(db, project, pr.title, pr.body)
+                            if candidate:
+                                associated_issue_id = candidate
+                        except Exception:
+                            associated_issue_id = None
                     
                     # Check build status from status checks
                     build_status = "Pending"
@@ -121,6 +134,15 @@ class GitHubSyncService:
                             last_synced_at=datetime.utcnow()
                         )
                         db.add(new_activity)
+                    # If we found an associated Jira issue, link it back to the JiraTask record
+                    if associated_issue_id:
+                        try:
+                            jira_task = db.query(JiraTask).filter(JiraTask.issue_id == associated_issue_id).first()
+                            if jira_task:
+                                jira_task.github_pr_id = pr_id
+                                db.add(jira_task)
+                        except Exception:
+                            pass
                     
                     synced_count += 1
                     
@@ -158,6 +180,32 @@ class GitHubSyncService:
             if match:
                 return match.group(0)
         
+        return None
+
+    def _find_similar_jira_task(self, db: Session, project: ProjectMetadata, title: str, body: Optional[str]) -> Optional[str]:
+        """Attempt to find a Jira task in the project that likely matches the PR by text matching.
+
+        Returns the Jira issue_id if a likely match is found, otherwise None.
+        This is a heuristic and only used to avoid creating duplicate logical tasks across systems.
+        """
+        if not title and not body:
+            return None
+
+        text = (title or "") + "\n" + (body or "")
+        text = text.lower()
+
+        try:
+            candidates = db.query(JiraTask).filter(JiraTask.project_id == project.project_id).all()
+            for t in candidates:
+                if not t.summary:
+                    continue
+                s = t.summary.lower()
+                # If the PR title/body contains the Jira summary, consider it a match
+                if s in text or any(word in text for word in s.split()[:5]):
+                    return t.issue_id
+        except Exception:
+            return None
+
         return None
 
 
@@ -268,6 +316,14 @@ class JiraSyncService:
                             existing.depends_on = depends_on
                             existing.labels = labels
                             existing.last_synced_at = datetime.utcnow()
+                        # Try to find a matching GitHub PR and link it
+                        try:
+                            gh_match = db.query(GitHubActivity).filter(GitHubActivity.associated_issue_id == issue_key).first()
+                            if gh_match:
+                                existing.github_pr_id = gh_match.pr_id
+                                db.add(existing)
+                        except Exception:
+                            pass
                         else:
                             # Create new
                             new_task = JiraTask(
@@ -289,6 +345,14 @@ class JiraSyncService:
                                 last_synced_at=datetime.utcnow()
                             )
                             db.add(new_task)
+                            # Try to find an existing GitHubActivity that references this issue and link it
+                            try:
+                                gh_match = db.query(GitHubActivity).filter(GitHubActivity.associated_issue_id == issue_key).first()
+                                if gh_match:
+                                    new_task.github_pr_id = gh_match.pr_id
+                                    db.add(new_task)
+                            except Exception:
+                                pass
                         
                         synced_count += 1
                         
