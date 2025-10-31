@@ -10,11 +10,6 @@ __pycache__/
 logs/
 instance/
 
-# SQLite database
-*.db
-*.db-journal
-*.sqlite
-*.sqlite3
 
 # Python cache
 .pytest_cache/
