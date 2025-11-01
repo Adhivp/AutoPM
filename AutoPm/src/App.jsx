@@ -18,6 +18,7 @@ import GitHubIssues from './pages/GitHubIssues';
 import SyncManagement from './pages/SyncManagement';
 import AIChat from './pages/AIChat';
 import SentimentAnalysis from './pages/SentimentAnalysis';
+import RiskPrediction from './pages/RiskPrediction';
 import './App.css';
 
 function App() {
@@ -117,6 +118,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <SentimentAnalysis />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/risk-prediction"
+                  element={
+                    <ProtectedRoute>
+                      <RiskPrediction />
                     </ProtectedRoute>
                   }
                 />

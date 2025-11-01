@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from config import settings
 from database import init_db, SessionLocal
 from routes import auth_routes, integration_routes, data_routes, sync_routes, chat_routes
-from routes import debug_routes, insights_routes, sentiment_routes
+from routes import debug_routes, insights_routes, sentiment_routes, risk_routes
 import asyncio
 from services.sync_service import sync_all_projects
 from services import sync_manager
@@ -99,6 +99,7 @@ app.include_router(sync_routes.router)
 app.include_router(chat_routes.router)
 app.include_router(insights_routes.router)
 app.include_router(sentiment_routes.router)
+app.include_router(risk_routes.router)
 app.include_router(debug_routes.router)
 
 

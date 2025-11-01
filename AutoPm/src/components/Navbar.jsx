@@ -1,7 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
-import { Menu, X, LogOut, User, Moon, Sun, ChevronDown, LayoutDashboard, FolderKanban, Users as UsersIcon, ListTodo, GitPullRequest, GitBranch, RefreshCw, MessageSquare, Heart } from 'lucide-react';
+import { Menu, X, LogOut, User, Moon, Sun, ChevronDown, LayoutDashboard, FolderKanban, Users as UsersIcon, ListTodo, GitPullRequest, GitBranch, RefreshCw, MessageSquare, Heart, Brain } from 'lucide-react';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -32,6 +32,7 @@ const Navbar = () => {
     { to: '/sync', label: 'Sync', icon: <RefreshCw size={16} /> },
     { to: '/ai-chat', label: 'AI Chat', icon: <MessageSquare size={16} /> },
     { to: '/sentiment', label: 'Sentiment', icon: <Heart size={16} /> },
+    { to: '/risk-prediction', label: 'Risk Prediction', icon: <Brain size={16} /> },
   ];
 
   return (
