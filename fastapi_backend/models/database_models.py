@@ -284,7 +284,7 @@ class VectorEmbedding(Base):
     project_id = Column(String(100), ForeignKey('project_metadata.project_id'))
     title = Column(String(500))
     content_text = Column(Text)  # The text that was embedded
-    metadata = Column(JSON)  # Additional metadata (author, date, labels, etc.)
+    content_metadata = Column(JSON)  # Additional metadata (author, date, labels, etc.)
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 

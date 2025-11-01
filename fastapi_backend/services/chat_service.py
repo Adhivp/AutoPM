@@ -83,11 +83,13 @@ Use the provided context to answer questions accurately. If the context doesn't 
 Always cite specific PR IDs, issue IDs, or task IDs when referencing them.
 """
             
+            history_section = f"Previous conversation:\n{history_str}" if history_str else ""
+            
             user_prompt = f"""
 Context from project data:
 {context_str}
 
-{f"Previous conversation:\n{history_str}" if history_str else ""}
+{history_section}
 
 User question: {message}
 
