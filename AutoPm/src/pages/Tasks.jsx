@@ -36,10 +36,12 @@ const Tasks = () => {
       if (statusFilter) params.status = statusFilter;
 
       const response = await dataAPI.getTasks(params);
-      setTasks(response.data);
+      // Backend returns paginated response: {data: [...], total: ..., page: ...}
+      const tasksData = response.data.data || [];
+      setTasks(tasksData);
 
       // Extract unique assignees and projects from tasks
-      const uniqueAssignees = [...new Set(response.data.map(task => task.assignee_name).filter(Boolean))];
+      const uniqueAssignees = [...new Set(tasksData.map(task => task.assignee_name).filter(Boolean))];
       setAssignees(uniqueAssignees);
     } catch (err) {
       setError('Failed to fetch tasks');

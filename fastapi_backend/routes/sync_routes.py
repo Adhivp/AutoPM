@@ -81,6 +81,156 @@ def perform_sync(db: Session, use_enhanced: bool = True):
         print(f"✗ Sync error: {str(e)}")
 
 
+def perform_jira_sync(db: Session):
+    """Background task to perform Jira-only sync"""
+    global sync_status_data
+    from config import settings
+    from services.enhanced_sync_service import EnhancedJiraSyncService
+    from models.database_models import ProjectMetadata
+    
+    # Update status to running
+    sync_status_data['jira_sync_status'] = 'running'
+    sync_status_data['errors'] = []
+    
+    start_time = datetime.utcnow()
+    
+    try:
+        # Get Jira credentials
+        jira_url = settings.JIRA_URL
+        jira_email = settings.JIRA_EMAIL
+        jira_token = settings.JIRA_API_TOKEN
+        
+        if not all([jira_url, jira_email, jira_token]):
+            raise ValueError("Missing Jira credentials in settings")
+        
+        # Initialize Jira service
+        jira_service = EnhancedJiraSyncService(jira_url, jira_email, jira_token)
+        
+        # Get all projects
+        projects = db.query(ProjectMetadata).all()
+        
+        total_issues = 0
+        total_comments = 0
+        errors = []
+        
+        # Sync Jira for each project
+        for project in projects:
+            if project.jira_project_key:
+                try:
+                    print(f"Syncing Jira for project: {project.project_name} ({project.jira_project_key})")
+                    result = jira_service.sync_issues_with_details(db, project)
+                    total_issues += result.get('issues', 0)
+                    total_comments += result.get('comments', 0)
+                    print(f"✓ Synced {result.get('issues', 0)} issues and {result.get('comments', 0)} comments for {project.project_name}")
+                except Exception as e:
+                    error_msg = f"Error syncing Jira for project {project.project_id}: {str(e)}"
+                    print(f"✗ {error_msg}")
+                    errors.append(error_msg)
+        
+        # Update status with results
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        sync_status_data['last_jira_sync'] = end_time
+        sync_status_data['jira_synced_items'] = total_issues
+        sync_status_data['jira_comments_synced'] = total_comments
+        sync_status_data['duration_seconds'] = duration
+        sync_status_data['errors'] = errors
+        
+        # Update status
+        if errors:
+            sync_status_data['jira_sync_status'] = 'error'
+        else:
+            sync_status_data['jira_sync_status'] = 'success'
+
+        print(f"✓ Jira sync completed in {duration:.2f}s: "
+              f"{total_issues} issues, {total_comments} comments")
+
+    except Exception as e:
+        sync_status_data['jira_sync_status'] = 'error'
+        sync_status_data['errors'].append(f"Jira sync failed: {str(e)}")
+        print(f"✗ Jira sync error: {str(e)}")
+
+
+def perform_github_sync(db: Session):
+    """Background task to perform GitHub-only sync"""
+    global sync_status_data
+    from config import settings
+    from services.enhanced_sync_service import EnhancedGitHubSyncService
+    from models.database_models import ProjectMetadata
+    
+    # Update status to running
+    sync_status_data['github_sync_status'] = 'running'
+    sync_status_data['errors'] = []
+    
+    start_time = datetime.utcnow()
+    
+    try:
+        # Get GitHub credentials
+        github_token = settings.GITHUB_TOKEN
+        
+        if not github_token:
+            raise ValueError("Missing GitHub credentials in settings")
+        
+        # Initialize GitHub service
+        github_service = EnhancedGitHubSyncService(github_token)
+        
+        # Get all projects
+        projects = db.query(ProjectMetadata).all()
+        
+        total_prs = 0
+        total_issues = 0
+        total_comments = 0
+        errors = []
+        
+        # Sync GitHub for each project
+        for project in projects:
+            if project.github_repo_name:
+                try:
+                    print(f"Syncing GitHub for project: {project.project_name} ({project.github_repo_name})")
+                    
+                    # Sync PRs
+                    pr_result = github_service.sync_pull_requests_with_details(db, project)
+                    total_prs += pr_result.get('prs', 0)
+                    total_comments += pr_result.get('comments', 0)
+                    
+                    # Sync Issues
+                    issue_result = github_service.sync_issues_with_details(db, project)
+                    total_issues += issue_result.get('issues', 0)
+                    total_comments += issue_result.get('comments', 0)
+                    
+                    print(f"✓ Synced {pr_result.get('prs', 0)} PRs, {issue_result.get('issues', 0)} issues for {project.project_name}")
+                except Exception as e:
+                    error_msg = f"Error syncing GitHub for project {project.project_id}: {str(e)}"
+                    print(f"✗ {error_msg}")
+                    errors.append(error_msg)
+        
+        # Update status with results
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        sync_status_data['last_github_sync'] = end_time
+        sync_status_data['github_prs_synced'] = total_prs
+        sync_status_data['github_issues_synced'] = total_issues
+        sync_status_data['github_comments_synced'] = total_comments
+        sync_status_data['duration_seconds'] = duration
+        sync_status_data['errors'] = errors
+        
+        # Update status
+        if errors:
+            sync_status_data['github_sync_status'] = 'error'
+        else:
+            sync_status_data['github_sync_status'] = 'success'
+
+        print(f"✓ GitHub sync completed in {duration:.2f}s: "
+              f"{total_prs} PRs, {total_issues} issues, {total_comments} comments")
+
+    except Exception as e:
+        sync_status_data['github_sync_status'] = 'error'
+        sync_status_data['errors'].append(f"GitHub sync failed: {str(e)}")
+        print(f"✗ GitHub sync error: {str(e)}")
+
+
 @router.post("/trigger")
 async def trigger_sync(
     background_tasks: BackgroundTasks,
@@ -102,6 +252,73 @@ async def trigger_sync(
     
     return {
         'message': 'Sync started in background',
+        'status': sync_status_data
+    }
+
+
+@router.post("/trigger/jira-only")
+async def trigger_jira_sync(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Manually trigger Jira-only sync operation"""
+    global sync_status_data
+    
+    # Check if Jira sync is already running
+    if sync_status_data['jira_sync_status'] == 'running':
+        return {
+            'message': 'Jira sync is already running',
+            'status': sync_status_data
+        }
+    
+    # Add Jira sync task to background
+    background_tasks.add_task(perform_jira_sync, db)
+    
+    return {
+        'message': 'Jira sync started in background',
+        'status': sync_status_data
+    }
+
+
+@router.post("/trigger/github-only")
+async def trigger_github_sync(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Manually trigger GitHub-only sync operation"""
+    global sync_status_data
+    
+    # Check if GitHub sync is already running
+    if sync_status_data['github_sync_status'] == 'running':
+        return {
+            'message': 'GitHub sync is already running',
+            'status': sync_status_data
+        }
+    
+    # Add GitHub sync task to background
+    background_tasks.add_task(perform_github_sync, db)
+    
+    return {
+        'message': 'GitHub sync started in background',
+        'status': sync_status_data
+    }
+
+
+@router.post("/trigger/stop")
+async def stop_sync(
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Stop any ongoing sync operation"""
+    global sync_status_data
+    
+    # Update sync status to idle
+    sync_status_data['github_sync_status'] = 'idle'
+    sync_status_data['jira_sync_status'] = 'idle'
+    
+    return {
+        'message': 'Sync stopped',
         'status': sync_status_data
     }
 

@@ -214,39 +214,61 @@ def get_employee(
 # JIRA TASK ENDPOINTS
 # ============================================================================
 
-@router.get("/tasks", response_model=List[JiraTaskWithDetails])
+@router.get("/tasks")
 def get_all_tasks(
     project_id: str = None,
     assignee_id: str = None,
     status: str = None,
+    priority: str = None,
+    issue_type: str = None,
+    page: int = 1,
+    page_size: int = 20,
     db: Session = Depends(get_db),
     current_user: EmployeeProfile = Depends(get_current_user)
 ):
-    """Get all Jira tasks with optional filters"""
+    """Get all Jira tasks with optional filters and pagination"""
     query = db.query(JiraTask)
     
+    # Apply filters
     if project_id:
         query = query.filter(JiraTask.project_id == project_id)
     if assignee_id:
         query = query.filter(JiraTask.assignee_id == assignee_id)
     if status:
         query = query.filter(JiraTask.status == status)
+    if priority:
+        query = query.filter(JiraTask.priority == priority)
+    if issue_type:
+        query = query.filter(JiraTask.issue_type == issue_type)
     
-    tasks = query.all()
+    # Get total count
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * page_size
+    tasks = query.order_by(JiraTask.updated_date.desc()).offset(offset).limit(page_size).all()
     
     result = []
     for task in tasks:
         assignee_name = task.assignee.name if task.assignee else None
+        reporter_name = None
         project_name = task.project.project_name if task.project else None
         
         task_dict = {
             **task.__dict__,
             'assignee_name': assignee_name,
+            'reporter_name': reporter_name,
             'project_name': project_name
         }
         result.append(task_dict)
     
-    return result
+    return {
+        'data': result,
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': (total + page_size - 1) // page_size
+    }
 
 
 @router.get("/tasks/{issue_id}", response_model=JiraTaskWithDetails)
@@ -275,17 +297,20 @@ def get_task(
 # GITHUB ACTIVITY ENDPOINTS
 # ============================================================================
 
-@router.get("/github/prs", response_model=List[GitHubActivityWithDetails])
+@router.get("/github/prs")
 def get_all_pull_requests(
     project_id: str = None,
     author_id: str = None,
     status: str = None,
+    page: int = 1,
+    page_size: int = 20,
     db: Session = Depends(get_db),
     current_user: EmployeeProfile = Depends(get_current_user)
 ):
-    """Get all GitHub pull requests with optional filters"""
+    """Get all GitHub pull requests with optional filters and pagination"""
     query = db.query(GitHubActivity)
     
+    # Apply filters
     if project_id:
         query = query.filter(GitHubActivity.project_id == project_id)
     if author_id:
@@ -293,7 +318,12 @@ def get_all_pull_requests(
     if status:
         query = query.filter(GitHubActivity.status == status)
     
-    prs = query.all()
+    # Get total count
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * page_size
+    prs = query.order_by(GitHubActivity.created_at.desc()).offset(offset).limit(page_size).all()
     
     result = []
     for pr in prs:
@@ -303,11 +333,22 @@ def get_all_pull_requests(
         pr_dict = {
             **pr.__dict__,
             'author_name': author_name,
-            'project_name': project_name
+            'project_name': project_name,
+            'description': pr.title,  # Add description field
+            'source_branch': 'main',  # Default values - update if you have these fields in DB
+            'target_branch': 'develop',
+            'pr_number': pr.pr_id.split('#')[-1] if '#' in pr.pr_id else pr.pr_id,
+            'html_url': None  # Add if available in DB
         }
         result.append(pr_dict)
     
-    return result
+    return {
+        'data': result,
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': (total + page_size - 1) // page_size
+    }
 
 
 @router.get("/github/prs/{pr_id}", response_model=GitHubActivityWithDetails)
@@ -336,19 +377,22 @@ def get_pull_request(
 # GITHUB ISSUES ENDPOINTS
 # ============================================================================
 
-@router.get("/github/issues", response_model=List[GitHubIssueWithDetails])
+@router.get("/github/issues")
 def get_all_github_issues(
     project_id: str = None,
     author_id: str = None,
     status: str = None,
     issue_type: str = None,
     priority: str = None,
+    page: int = 1,
+    page_size: int = 20,
     db: Session = Depends(get_db),
     current_user: EmployeeProfile = Depends(get_current_user)
 ):
-    """Get all GitHub issues with optional filters"""
+    """Get all GitHub issues with optional filters and pagination"""
     query = db.query(GitHubIssue)
     
+    # Apply filters
     if project_id:
         query = query.filter(GitHubIssue.project_id == project_id)
     if author_id:
@@ -360,7 +404,12 @@ def get_all_github_issues(
     if priority:
         query = query.filter(GitHubIssue.priority == priority)
     
-    issues = query.all()
+    # Get total count
+    total = query.count()
+    
+    # Apply pagination
+    offset = (page - 1) * page_size
+    issues = query.order_by(GitHubIssue.created_at.desc()).offset(offset).limit(page_size).all()
     
     result = []
     for issue in issues:
@@ -374,7 +423,13 @@ def get_all_github_issues(
         }
         result.append(issue_dict)
     
-    return result
+    return {
+        'data': result,
+        'total': total,
+        'page': page,
+        'page_size': page_size,
+        'total_pages': (total + page_size - 1) // page_size
+    }
 
 
 @router.get("/github/issues/{issue_id}", response_model=GitHubIssueWithDetails)

@@ -377,7 +377,7 @@ class JiraSyncService:
             
             while True:
                 response = self.session.get(
-                    f"{self.url}/rest/api/3/search/jql",
+                    f"{self.url}/rest/api/3/search",
                     params={
                         'jql': jql,
                         'startAt': start_at,

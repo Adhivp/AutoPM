@@ -5,7 +5,7 @@ Endpoints for chat, embeddings, and semantic search
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from database import get_db
-from models.database_models import EmployeeProfile
+from models.user import User
 from services.auth_service import get_current_user
 from services.chat_service import get_chat_service
 from services.vector_service import get_vector_service
@@ -60,7 +60,7 @@ class ProjectSummaryRequest(BaseModel):
 def chat_with_ai(
     request: ChatRequest,
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Chat with AI assistant using RAG (Retrieval Augmented Generation)
@@ -79,15 +79,26 @@ def chat_with_ai(
         
         result = chat_service.chat(
             db=db,
-            user_id=current_user.employee_id,
+            user_id=str(current_user.id),
             message=request.message,
             project_ids=request.project_ids,
             content_types=request.content_types,
             conversation_history=request.conversation_history
         )
         
+        # Check if the service returned an error
+        if not result.get("success", True):
+            error_msg = result.get("error", "Unknown error occurred")
+            raise HTTPException(status_code=500, detail=error_msg)
+        
+        # Add timestamp if not present
+        if "timestamp" not in result:
+            result["timestamp"] = datetime.utcnow().isoformat()
+        
         return ChatResponse(**result)
         
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Chat error: {str(e)}")
 
@@ -96,14 +107,14 @@ def chat_with_ai(
 def get_chat_history(
     limit: int = 20,
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get user's chat history"""
     try:
         chat_service = get_chat_service()
         history = chat_service.get_conversation_history(
             db=db,
-            user_id=current_user.employee_id,
+            user_id=str(current_user.id),
             limit=limit
         )
         return {
@@ -119,7 +130,7 @@ def get_chat_history(
 def get_suggested_questions(
     project_id: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get suggested questions to ask the AI"""
     try:
@@ -141,7 +152,7 @@ def get_suggested_questions(
 def semantic_search(
     request: SearchRequest,
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Perform semantic search across all synced data
@@ -181,7 +192,7 @@ def semantic_search(
 def generate_all_embeddings(
     request: EmbedAllRequest,
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Generate embeddings for all existing data in the database
@@ -212,7 +223,7 @@ def generate_all_embeddings(
 @router.get("/embeddings/stats")
 def get_embedding_stats(
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get statistics about embeddings in the system"""
     try:
@@ -247,7 +258,7 @@ def get_embedding_stats(
 def analyze_project_summary(
     request: ProjectSummaryRequest,
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Generate AI-powered project status summary
@@ -273,7 +284,7 @@ def analyze_project_summary(
 def analyze_sentiment(
     text: str,
     db: Session = Depends(get_db),
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """
     Analyze sentiment of text (comments, messages, etc.)
@@ -303,7 +314,7 @@ def analyze_sentiment(
 
 @router.get("/status")
 def get_ai_system_status(
-    current_user: EmployeeProfile = Depends(get_current_user)
+    current_user: User = Depends(get_current_user)
 ):
     """Get AI system status and health"""
     try:

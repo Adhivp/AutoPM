@@ -14,6 +14,10 @@ from models.database_models import (
 )
 import json
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 class VectorDatabaseService:
@@ -21,8 +25,13 @@ class VectorDatabaseService:
     
     def __init__(self, api_key: Optional[str] = None):
         """Initialize vector database and Gemini client"""
-        # Initialize Gemini client
-        self.genai_client = genai.Client(api_key=api_key or os.getenv('GEMINI_API_KEY'))
+        # Initialize Gemini client with API key
+        api_key_value = api_key or os.getenv('GEMINI_API_KEY')
+        if api_key_value:
+            self.genai_client = genai.Client(api_key=api_key_value)
+        else:
+            print("Warning: GEMINI_API_KEY not found. Embeddings will not be generated.")
+            self.genai_client = None
         
         # Initialize ChromaDB with persistent storage
         self.chroma_client = chromadb.PersistentClient(
@@ -57,11 +66,24 @@ class VectorDatabaseService:
     def generate_embedding(self, text: str) -> List[float]:
         """Generate embedding using Gemini"""
         try:
+            if not self.genai_client:
+                print("Warning: Gemini client not initialized. Returning zero vector.")
+                return [0.0] * 768
+            
+            # Use the correct Gemini API format - embed_content expects 'contents' parameter
             result = self.genai_client.models.embed_content(
                 model="models/text-embedding-004",
-                content=text
+                contents=text  # Changed from 'content' to 'contents'
             )
-            return result.embeddings[0].values if result.embeddings else []
+            
+            # Extract embedding values
+            if hasattr(result, 'embedding') and hasattr(result.embedding, 'values'):
+                return result.embedding.values
+            elif hasattr(result, 'embeddings') and len(result.embeddings) > 0:
+                return result.embeddings[0].values
+            else:
+                print("Warning: Unexpected embedding result format")
+                return [0.0] * 768
         except Exception as e:
             print(f"Error generating embedding: {str(e)}")
             # Return zero vector as fallback
@@ -373,7 +395,19 @@ class VectorDatabaseService:
         project_ids: List[str] = None,
         n_results: int = 10
     ) -> List[Dict[str, Any]]:
-        """Perform semantic search across all content"""
+        """Perform semantic search across all content
+        
+        Args:
+            query: Search query text
+            content_types: Types of content to search (pr, issue, jira_task, comment)
+            project_ids: Filter by specific project IDs
+            n_results: Maximum number of results to return
+            min_similarity_score: Minimum similarity score threshold (0.0 to 1.0).
+                                 Default is 0.3 (30%) to filter out less relevant items.
+        
+        Returns:
+            List of relevant items with similarity scores above threshold
+        """
         try:
             # Generate query embedding
             query_embedding = self.generate_embedding(query)
@@ -411,7 +445,7 @@ class VectorDatabaseService:
                                 "content_type": content_type,
                                 "document": search_results['documents'][0][i],
                                 "metadata": search_results['metadatas'][0][i],
-                                "similarity_score": 1 - search_results['distances'][0][i]
+                                "similarity_score": similarity_score
                             }
                             
                             # Filter by project if specified

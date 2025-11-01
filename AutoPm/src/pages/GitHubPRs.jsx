@@ -36,10 +36,12 @@ const GitHubPRs = () => {
       if (statusFilter) params.status = statusFilter;
 
       const response = await dataAPI.getPullRequests(params);
-      setPrs(response.data);
+      // Backend returns paginated response: {data: [...], total: ..., page: ...}
+      const prsData = response.data.data || [];
+      setPrs(prsData);
 
       // Extract unique authors from PRs
-      const uniqueAuthors = [...new Set(response.data.map(pr => pr.author_name).filter(Boolean))];
+      const uniqueAuthors = [...new Set(prsData.map(pr => pr.author_name).filter(Boolean))];
       setAuthors(uniqueAuthors);
     } catch (err) {
       setError('Failed to fetch pull requests');

@@ -51,10 +51,11 @@ class Settings(BaseSettings):
     # Google Gemini AI settings
     GEMINI_API_KEY: Optional[str] = None
     
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"  # Ignore extra fields in .env that aren't defined here
+    model_config = {
+        "env_file": ".env",
+        "case_sensitive": True,
+        "extra": "ignore"  # Ignore extra fields in .env that aren't defined here
+    }
     
     def get_cors_origins(self) -> list[str]:
         """Parse CORS origins from comma-separated string"""

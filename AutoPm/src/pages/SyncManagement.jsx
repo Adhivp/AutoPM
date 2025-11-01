@@ -21,8 +21,7 @@ const SyncManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [triggeringSync, setTriggeringSync] = useState(false);
-  const [startingPeriodic, setStartingPeriodic] = useState(false);
-  const [stoppingPeriodic, setStoppingPeriodic] = useState(false);
+  const [stoppingSync, setStoppingSync] = useState(false);
 
   useEffect(() => {
     fetchSyncStatus();
@@ -68,33 +67,20 @@ const SyncManagement = () => {
     }
   };
 
-  const handleStartPeriodicSync = async () => {
+  const handleStopSync = async () => {
     try {
-      setStartingPeriodic(true);
+      setStoppingSync(true);
       setError(null);
-      await syncAPI.startPeriodicSync();
+      await syncAPI.stopSync();
       // Refresh status
-      setTimeout(fetchSyncStatus, 1000);
+      setTimeout(() => {
+        fetchSyncStatus();
+      }, 1000);
     } catch (err) {
-      setError('Failed to start periodic sync');
-      console.error('Error starting periodic sync:', err);
+      setError('Failed to stop sync');
+      console.error('Error stopping sync:', err);
     } finally {
-      setStartingPeriodic(false);
-    }
-  };
-
-  const handleStopPeriodicSync = async () => {
-    try {
-      setStoppingPeriodic(true);
-      setError(null);
-      await syncAPI.stopPeriodicSync();
-      // Refresh status
-      setTimeout(fetchSyncStatus, 1000);
-    } catch (err) {
-      setError('Failed to stop periodic sync');
-      console.error('Error stopping periodic sync:', err);
-    } finally {
-      setStoppingPeriodic(false);
+      setStoppingSync(false);
     }
   };
 
@@ -258,29 +244,16 @@ const SyncManagement = () => {
             </button>
 
             <button
-              onClick={handleStartPeriodicSync}
-              disabled={startingPeriodic}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-green-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
-            >
-              {startingPeriodic ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Play className="w-4 h-4" />
-              )}
-              {startingPeriodic ? 'Starting...' : 'Start Periodic Sync'}
-            </button>
-
-            <button
-              onClick={handleStopPeriodicSync}
-              disabled={stoppingPeriodic}
+              onClick={handleStopSync}
+              disabled={stoppingSync || (syncStatus?.github_sync_status !== 'running' && syncStatus?.jira_sync_status !== 'running')}
               className="bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
             >
-              {stoppingPeriodic ? (
+              {stoppingSync ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               ) : (
                 <Square className="w-4 h-4" />
               )}
-              {stoppingPeriodic ? 'Stopping...' : 'Stop Periodic Sync'}
+              {stoppingSync ? 'Stopping...' : 'Stop Sync'}
             </button>
           </div>
         </motion.div>

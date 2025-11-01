@@ -16,6 +16,7 @@ import Tasks from './pages/Tasks';
 import GitHubPRs from './pages/GitHubPRs';
 import GitHubIssues from './pages/GitHubIssues';
 import SyncManagement from './pages/SyncManagement';
+import AIChat from './pages/AIChat';
 import './App.css';
 
 function App() {
@@ -99,6 +100,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <SyncManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/ai-chat"
+                  element={
+                    <ProtectedRoute>
+                      <AIChat />
                     </ProtectedRoute>
                   }
                 />

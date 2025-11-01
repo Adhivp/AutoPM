@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Filter, Issue, User, Calendar, Tag, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Search, Filter, CircleDot, User, Calendar, Tag, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 import { dataAPI } from '../utils/api';
 
 const GitHubIssues = () => {
@@ -28,10 +28,13 @@ const GitHubIssues = () => {
       });
 
       const response = await dataAPI.getGitHubIssues(params);
-      setIssues(response.data || []);
+      // Backend returns paginated response: {data: [...], total: ..., page: ...}
+      const issuesData = response.data.data || [];
+      setIssues(issuesData);
     } catch (err) {
       setError('Failed to fetch GitHub issues');
       console.error('Error fetching GitHub issues:', err);
+      setIssues([]); // Set to empty array on error
     } finally {
       setLoading(false);
     }
@@ -65,11 +68,11 @@ const GitHubIssues = () => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
-  const filteredIssues = issues.filter(issue =>
+  const filteredIssues = Array.isArray(issues) ? issues.filter(issue =>
     issue.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     issue.author_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     issue.issue_id?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ) : [];
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -112,21 +115,6 @@ const GitHubIssues = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
-  };
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
   };
 
   return (
@@ -247,17 +235,16 @@ const GitHubIssues = () => {
 
       {/* Issues List */}
       <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
         className="space-y-4"
       >
         {loading ? (
           // Loading skeleton
           Array.from({ length: 5 }).map((_, index) => (
-            <motion.div
+            <div
               key={index}
-              variants={itemVariants}
               className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-transparent dark:border-gray-700"
             >
               <div className="animate-pulse">
@@ -274,11 +261,10 @@ const GitHubIssues = () => {
                   <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-16"></div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))
         ) : error ? (
-          <motion.div
-            variants={itemVariants}
+          <div
             className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6"
           >
             <div className="text-center">
@@ -291,13 +277,12 @@ const GitHubIssues = () => {
                 Retry
               </button>
             </div>
-          </motion.div>
+          </div>
         ) : filteredIssues.length === 0 ? (
-          <motion.div
-            variants={itemVariants}
+          <div
             className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-primary-500/10 p-12 text-center border border-transparent dark:border-gray-700"
           >
-            <Issue className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <CircleDot className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">No GitHub issues found</h3>
             <p className="text-gray-600 dark:text-gray-300">
               {searchTerm || Object.values(filters).some(v => v) ?
@@ -305,14 +290,16 @@ const GitHubIssues = () => {
                 'GitHub issues will appear here once synced'
               }
             </p>
-          </motion.div>
+          </div>
         ) : (
-          filteredIssues.map((issue) => (
+          filteredIssues.map((issue, index) => (
             <motion.div
               key={issue.issue_id}
-              variants={itemVariants}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
               whileHover={{ y: -2 }}
-              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg dark:shadow-primary-500/10 dark:hover:shadow-primary-500/20 transition-all duration-300 border border-transparent dark:border-gray-700"
+              className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md hover:shadow-lg dark:shadow-primary-500/10 dark:hover:shadow-primary-500/20 transition-all duration-200 border border-transparent dark:border-gray-700"
             >
               <div className="flex items-start justify-between mb-4">
                 <div className="flex-1">

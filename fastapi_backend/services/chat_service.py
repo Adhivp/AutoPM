@@ -10,6 +10,10 @@ from models.database_models import ChatHistory, EmployeeProfile
 from services.vector_service import get_vector_service
 import os
 import json
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 
 class AIChatService:
@@ -17,7 +21,12 @@ class AIChatService:
     
     def __init__(self, api_key: Optional[str] = None):
         """Initialize Gemini client"""
-        self.genai_client = genai.Client(api_key=api_key or os.getenv('GEMINI_API_KEY'))
+        api_key_value = api_key or os.getenv('GEMINI_API_KEY')
+        if api_key_value:
+            self.genai_client = genai.Client(api_key=api_key_value)
+        else:
+            print("Warning: GEMINI_API_KEY not found. AI chat will not be available.")
+            self.genai_client = None
         self.vector_service = get_vector_service()
         self.model = "gemini-2.0-flash-exp"
     
@@ -28,7 +37,8 @@ class AIChatService:
         message: str,
         project_ids: Optional[List[str]] = None,
         content_types: Optional[List[str]] = None,
-        conversation_history: Optional[List[Dict[str, str]]] = None
+        conversation_history: Optional[List[Dict[str, str]]] = None,
+        min_similarity_score: float = 0.3
     ) -> Dict[str, Any]:
         """
         Chat with AI assistant using RAG (Retrieval Augmented Generation)
@@ -40,17 +50,30 @@ class AIChatService:
             project_ids: Optional list of project IDs to filter context
             content_types: Optional list of content types to search (pr, issue, jira_task, comment)
             conversation_history: Optional previous conversation context
+            min_similarity_score: Minimum relevance score for context items (0.0-1.0, default 0.3)
         
         Returns:
             Dict with response, context items, and metadata
         """
         try:
+            # Check if Gemini client is initialized
+            if not self.genai_client:
+                return {
+                    "success": False,
+                    "error": "AI service is not configured. Please set GEMINI_API_KEY environment variable.",
+                    "response": "AI service is not available. Please configure the GEMINI_API_KEY.",
+                    "context_items": [],
+                    "context_count": 0,
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            
             # Step 1: Retrieve relevant context from vector database
             relevant_items = self.vector_service.semantic_search(
                 query=message,
                 content_types=content_types,
                 project_ids=project_ids,
-                n_results=10
+                n_results=10,
+                min_similarity_score=min_similarity_score
             )
             
             # Step 2: Build context string from retrieved items
@@ -141,12 +164,15 @@ Please provide a helpful, accurate response based on the context provided. If yo
             
         except Exception as e:
             print(f"Error in chat: {str(e)}")
+            import traceback
+            traceback.print_exc()  # Print full traceback for debugging
             return {
                 "success": False,
                 "error": str(e),
                 "response": "I apologize, but I encountered an error processing your request. Please try again.",
                 "context_items": [],
-                "context_count": 0
+                "context_count": 0,
+                "timestamp": datetime.utcnow().isoformat()
             }
     
     def _build_context_string(self, items: List[Dict[str, Any]]) -> str:
@@ -210,6 +236,14 @@ Content:
     def analyze_sentiment(self, text: str) -> Dict[str, Any]:
         """Analyze sentiment of comments or messages"""
         try:
+            if not self.genai_client:
+                return {
+                    "sentiment": "Neutral",
+                    "is_blocker": False,
+                    "is_critical": False,
+                    "summary": "AI service not available"
+                }
+            
             prompt = f"""
 Analyze the sentiment and tone of the following text from a project management context.
 Categorize as: Positive, Neutral, Negative, or Urgent.
@@ -262,6 +296,13 @@ Respond in JSON format:
     ) -> Dict[str, Any]:
         """Generate AI summary of project status"""
         try:
+            if not self.genai_client:
+                return {
+                    "success": False,
+                    "error": "AI service not available",
+                    "summary": "AI service is not configured."
+                }
+            
             # Search for all content related to this project
             all_items = self.vector_service.semantic_search(
                 query=f"project status overview progress blockers risks",

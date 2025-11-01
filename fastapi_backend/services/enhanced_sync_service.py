@@ -585,18 +585,29 @@ class EnhancedJiraSyncService:
         
         try:
             jql = f"project = {project.jira_project_key} ORDER BY updated DESC"
-            start_at = 0
+            next_page_token = None
             max_results = 100  # Increased batch size
             
             while True:
-                response = self.session.get(
-                    f"{self.url}/rest/api/3/search",
-                    params={
-                        'jql': jql,
-                        'startAt': start_at,
-                        'maxResults': max_results,
-                        'fields': 'summary,description,issuetype,assignee,status,priority,created,updated,resolutiondate,parent,issuelinks,labels,customfield_10016,comment'
-                    }
+                # Use POST with JSON body for Jira Cloud v3 API - /search/jql endpoint (enhanced search)
+                payload = {
+                    'jql': jql,
+                    'maxResults': max_results,
+                    'fields': ['summary', 'description', 'issuetype', 'assignee', 'status', 
+                              'priority', 'created', 'updated', 'resolutiondate', 'parent', 
+                              'issuelinks', 'labels', 'customfield_10016', 'comment']
+                }
+                
+                # Add nextPageToken for pagination (only if not first request)
+                if next_page_token:
+                    payload['nextPageToken'] = next_page_token
+                
+                endpoint_url = f"{self.url}/rest/api/3/search/jql"
+                print(f"DEBUG: Making POST request to {endpoint_url}")
+                
+                response = self.session.post(
+                    endpoint_url,
+                    json=payload
                 )
                 
                 if response.status_code != 200:
@@ -642,6 +653,9 @@ class EnhancedJiraSyncService:
                         jira_priority = fields.get('priority', {}).get('name', 'Medium')
                         priority = self._map_jira_priority(jira_priority)
                         
+                        # Extract description text from ADF format
+                        description_text = self._extract_text_from_adf(fields.get('description'))
+                        
                         # Create or update Jira task
                         existing = db.query(JiraTask).filter(
                             JiraTask.issue_id == issue_key
@@ -649,7 +663,7 @@ class EnhancedJiraSyncService:
                         
                         if existing:
                             existing.summary = fields.get('summary')
-                            existing.description = fields.get('description')
+                            existing.description = description_text
                             existing.issue_type = fields.get('issuetype', {}).get('name')
                             existing.assignee_id = assignee.employee_id if assignee else None
                             existing.status = status
@@ -666,7 +680,7 @@ class EnhancedJiraSyncService:
                                 issue_id=issue_key,
                                 project_id=project.project_id,
                                 summary=fields.get('summary'),
-                                description=fields.get('description'),
+                                description=description_text,
                                 issue_type=fields.get('issuetype', {}).get('name'),
                                 assignee_id=assignee.employee_id if assignee else None,
                                 status=status,
@@ -709,10 +723,15 @@ class EnhancedJiraSyncService:
                 
                 db.commit()
                 
-                if start_at + max_results >= data.get('total', 0):
+                # Check if there are more pages using the new pagination token system
+                # The response includes 'isLast' boolean to indicate if this is the last page
+                if data.get('isLast', True):
                     break
                 
-                start_at += max_results
+                # Get the next page token for the next iteration
+                next_page_token = data.get('nextPageToken')
+                if not next_page_token:
+                    break
             
             log_entry.status = 'completed'
             log_entry.items_synced = synced_issues
@@ -750,8 +769,11 @@ class EnhancedJiraSyncService:
                     JiraComment.comment_id == comment_id
                 ).first()
                 
+                # Extract text from ADF body (Jira returns ADF format as dict)
+                body_text = self._extract_text_from_adf(comment.get('body'))
+                
                 if existing:
-                    existing.body = comment.get('body')
+                    existing.body = body_text
                     existing.updated_at = self._parse_jira_date(comment.get('updated'))
                     existing.last_synced_at = datetime.utcnow()
                 else:
@@ -759,13 +781,15 @@ class EnhancedJiraSyncService:
                         comment_id=comment_id,
                         issue_id=issue_key,
                         author_id=author.employee_id if author else None,
-                        body=comment.get('body'),
+                        body=body_text,
                         created_at=self._parse_jira_date(comment.get('created')),
                         updated_at=self._parse_jira_date(comment.get('updated')),
                         last_synced_at=datetime.utcnow()
                     )
                     db.add(new_comment)
                 
+                # Flush to database to ensure comment is saved
+                db.flush()
                 synced_count += 1
                 
                 # Embed comment in vector database
@@ -774,13 +798,14 @@ class EnhancedJiraSyncService:
                     if existing:
                         vector_service.embed_comment(db, existing, "jira")
                     else:
-                        db.flush()
                         vector_service.embed_comment(db, new_comment, "jira")
                 except Exception as e:
                     print(f"Error embedding Jira comment: {str(e)}")
                 
             except Exception as e:
                 print(f"Error syncing Jira comment: {str(e)}")
+                # Rollback the current transaction to recover from error
+                db.rollback()
                 continue
         
         return synced_count
@@ -817,6 +842,45 @@ class EnhancedJiraSyncService:
             return datetime.fromisoformat(date_str.replace('+0000', '+00:00'))
         except:
             return None
+    
+    def _extract_text_from_adf(self, adf_content) -> Optional[str]:
+        """Extract plain text from Atlassian Document Format (ADF)"""
+        if not adf_content:
+            return None
+        
+        # If it's already a string, return it
+        if isinstance(adf_content, str):
+            return adf_content
+        
+        # If it's a dict (ADF JSON), extract text from content
+        if isinstance(adf_content, dict):
+            import json
+            
+            def extract_text(node):
+                """Recursively extract text from ADF nodes"""
+                texts = []
+                
+                if isinstance(node, dict):
+                    # If node has text, add it
+                    if 'text' in node:
+                        texts.append(node['text'])
+                    
+                    # Recursively process content array
+                    if 'content' in node and isinstance(node['content'], list):
+                        for child in node['content']:
+                            texts.extend(extract_text(child))
+                
+                elif isinstance(node, list):
+                    for item in node:
+                        texts.extend(extract_text(item))
+                
+                return texts
+            
+            # Extract all text and join with spaces
+            all_texts = extract_text(adf_content)
+            return ' '.join(all_texts).strip() if all_texts else None
+        
+        return None
 
 
 def sync_project_parallel(project: ProjectMetadata, github_service, jira_service) -> Dict[str, Any]:
