@@ -1,10 +1,12 @@
 """
 Sync Routes - Endpoints to trigger and monitor GitHub/Jira synchronization
+Enhanced with parallel processing and comprehensive data syncing
 """
 from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from database import get_db
-from services.sync_service import sync_all_projects
+from services.enhanced_sync_service import sync_all_projects_parallel
+from services.sync_service import sync_all_projects  # Keep for backward compatibility
 from models.schemas import SyncStatus
 from models.database_models import EmployeeProfile
 from services.auth_service import get_current_user
@@ -14,7 +16,7 @@ from services import sync_manager
 
 router = APIRouter(prefix="/api/sync", tags=["Synchronization"])
 
-# Global sync status tracking
+# Global sync status tracking with enhanced metrics
 sync_status_data: Dict[str, Any] = {
     'last_github_sync': None,
     'last_jira_sync': None,
@@ -22,13 +24,16 @@ sync_status_data: Dict[str, Any] = {
     'jira_sync_status': 'idle',
     'github_prs_synced': 0,
     'github_issues_synced': 0,
+    'github_comments_synced': 0,
     'jira_synced_items': 0,
+    'jira_comments_synced': 0,
+    'duration_seconds': 0,
     'errors': []
 }
 
 
-def perform_sync(db: Session):
-    """Background task to perform sync"""
+def perform_sync(db: Session, use_enhanced: bool = True):
+    """Background task to perform sync with enhanced parallel processing"""
     global sync_status_data
     
     # Update status to running
@@ -37,15 +42,21 @@ def perform_sync(db: Session):
     sync_status_data['errors'] = []
     
     try:
-        # Perform sync
-        results = sync_all_projects(db)
+        # Perform sync (use enhanced parallel version by default)
+        if use_enhanced:
+            results = sync_all_projects_parallel(db, max_workers=5)
+        else:
+            results = sync_all_projects(db)
         
         # Update status with results
         sync_status_data['last_github_sync'] = datetime.utcnow()
         sync_status_data['last_jira_sync'] = datetime.utcnow()
         sync_status_data['github_prs_synced'] = results.get('github_prs_synced', 0)
         sync_status_data['github_issues_synced'] = results.get('github_issues_synced', 0)
+        sync_status_data['github_comments_synced'] = results.get('github_comments_synced', 0)
         sync_status_data['jira_synced_items'] = results.get('jira_issues_synced', 0)
+        sync_status_data['jira_comments_synced'] = results.get('jira_comments_synced', 0)
+        sync_status_data['duration_seconds'] = results.get('duration_seconds', 0)
         sync_status_data['errors'] = results.get('errors', [])
         
         # Update status
@@ -56,7 +67,12 @@ def perform_sync(db: Session):
             sync_status_data['github_sync_status'] = 'error'
             sync_status_data['jira_sync_status'] = 'error'
 
-        print(f"✓ Sync completed: {results.get('github_prs_synced', 0)} PRs, {results.get('github_issues_synced', 0)} issues, {results.get('jira_issues_synced', 0)} Jira issues")
+        print(f"✓ Enhanced sync completed in {results.get('duration_seconds', 0):.2f}s: "
+              f"{results.get('github_prs_synced', 0)} PRs, "
+              f"{results.get('github_issues_synced', 0)} issues, "
+              f"{results.get('github_comments_synced', 0)} GitHub comments, "
+              f"{results.get('jira_issues_synced', 0)} Jira tasks, "
+              f"{results.get('jira_comments_synced', 0)} Jira comments")
 
     except Exception as e:
         sync_status_data['github_sync_status'] = 'error'
@@ -154,3 +170,66 @@ def get_sync_history(
         })
     
     return history
+
+
+@router.get("/logs")
+def get_sync_logs(
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Get detailed sync operation logs for auditing and debugging"""
+    from models.database_models import SyncLog
+    
+    logs = db.query(SyncLog).order_by(SyncLog.log_id.desc()).limit(limit).all()
+    
+    return [{
+        'log_id': log.log_id,
+        'sync_type': log.sync_type,
+        'project_id': log.project_id,
+        'status': log.status,
+        'items_synced': log.items_synced,
+        'error_message': log.error_message,
+        'started_at': log.started_at,
+        'completed_at': log.completed_at,
+        'duration_seconds': log.duration_seconds
+    } for log in logs]
+
+
+@router.get("/stats")
+def get_sync_stats(
+    db: Session = Depends(get_db),
+    current_user: EmployeeProfile = Depends(get_current_user)
+):
+    """Get comprehensive sync statistics"""
+    from models.database_models import (
+        GitHubActivity, GitHubIssue, GitHubComment, 
+        JiraTask, JiraComment, SyncLog
+    )
+    from sqlalchemy import func
+    
+    stats = {
+        'github': {
+            'total_prs': db.query(func.count(GitHubActivity.pr_id)).scalar() or 0,
+            'total_issues': db.query(func.count(GitHubIssue.issue_id)).scalar() or 0,
+            'total_comments': db.query(func.count(GitHubComment.comment_id)).scalar() or 0,
+            'last_sync': db.query(func.max(GitHubActivity.last_synced_at)).scalar()
+        },
+        'jira': {
+            'total_tasks': db.query(func.count(JiraTask.issue_id)).scalar() or 0,
+            'total_comments': db.query(func.count(JiraComment.comment_id)).scalar() or 0,
+            'last_sync': db.query(func.max(JiraTask.last_synced_at)).scalar()
+        },
+        'sync_logs': {
+            'total_syncs': db.query(func.count(SyncLog.log_id)).scalar() or 0,
+            'failed_syncs': db.query(func.count(SyncLog.log_id)).filter(
+                SyncLog.status == 'failed'
+            ).scalar() or 0,
+            'avg_duration': db.query(func.avg(SyncLog.duration_seconds)).filter(
+                SyncLog.status == 'completed'
+            ).scalar() or 0
+        },
+        'current_status': sync_status_data
+    }
+    
+    return stats

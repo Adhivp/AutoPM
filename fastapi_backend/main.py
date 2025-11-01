@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from config import settings
 from database import init_db, SessionLocal
-from routes import auth_routes, integration_routes, data_routes, sync_routes
+from routes import auth_routes, integration_routes, data_routes, sync_routes, chat_routes
 from routes import debug_routes
 import asyncio
 from services.sync_service import sync_all_projects
@@ -96,6 +96,7 @@ app.include_router(auth_routes.router)
 app.include_router(integration_routes.router)
 app.include_router(data_routes.router)
 app.include_router(sync_routes.router)
+app.include_router(chat_routes.router)
 app.include_router(debug_routes.router)
 
 

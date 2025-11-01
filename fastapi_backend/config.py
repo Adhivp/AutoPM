@@ -48,6 +48,9 @@ class Settings(BaseSettings):
     JIRA_EMAIL: Optional[str] = None
     JIRA_API_TOKEN: Optional[str] = None
     
+    # Google Gemini AI settings
+    GEMINI_API_KEY: Optional[str] = None
+    
     class Config:
         env_file = ".env"
         case_sensitive = True

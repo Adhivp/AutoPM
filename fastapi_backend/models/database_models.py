@@ -229,3 +229,73 @@ class SyncControl(Base):
     desired_state = Column(String(50), CheckConstraint("desired_state IN ('running','stopped')"), nullable=False, default='running')
     updated_by = Column(String(100), nullable=True)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class GitHubComment(Base):
+    """GitHub Comments - Store comments from PRs and Issues"""
+    __tablename__ = "github_comments"
+    
+    comment_id = Column(String(100), primary_key=True)  # GitHub comment ID
+    pr_id = Column(String(100), ForeignKey('github_activity.pr_id'), nullable=True)
+    issue_id = Column(String(100), ForeignKey('github_issues.issue_id'), nullable=True)
+    author_id = Column(String(100), ForeignKey('employee_profile.employee_id'))
+    body = Column(Text)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+    reactions = Column(JSON)  # {"thumbs_up": 5, "thumbs_down": 0, "laugh": 2}
+    last_synced_at = Column(DateTime, default=func.now())
+
+
+class JiraComment(Base):
+    """Jira Comments - Store comments from Jira issues"""
+    __tablename__ = "jira_comments"
+    
+    comment_id = Column(String(100), primary_key=True)  # Jira comment ID
+    issue_id = Column(String(100), ForeignKey('jira_tasks.issue_id'), nullable=False)
+    author_id = Column(String(100), ForeignKey('employee_profile.employee_id'))
+    body = Column(Text)
+    created_at = Column(DateTime)
+    updated_at = Column(DateTime)
+    last_synced_at = Column(DateTime, default=func.now())
+
+
+class SyncLog(Base):
+    """Sync Log - Track sync operations for auditing and debugging"""
+    __tablename__ = "sync_logs"
+    
+    log_id = Column(Integer, primary_key=True, autoincrement=True)
+    sync_type = Column(String(50))  # 'github_pr', 'github_issue', 'jira_issue'
+    project_id = Column(String(100), ForeignKey('project_metadata.project_id'))
+    status = Column(String(50))  # 'started', 'completed', 'failed'
+    items_synced = Column(Integer, default=0)
+    error_message = Column(Text)
+    started_at = Column(DateTime)
+    completed_at = Column(DateTime)
+    duration_seconds = Column(Float)
+
+
+class VectorEmbedding(Base):
+    """Vector Embeddings - Store embeddings for semantic search"""
+    __tablename__ = "vector_embeddings"
+    
+    embedding_id = Column(String(100), primary_key=True)
+    content_type = Column(String(50))  # 'pr', 'issue', 'jira_task', 'comment'
+    content_id = Column(String(100))  # Reference to the actual content
+    project_id = Column(String(100), ForeignKey('project_metadata.project_id'))
+    title = Column(String(500))
+    content_text = Column(Text)  # The text that was embedded
+    metadata = Column(JSON)  # Additional metadata (author, date, labels, etc.)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+
+class ChatHistory(Base):
+    """Chat History - Store chat conversations with AI"""
+    __tablename__ = "chat_history"
+    
+    chat_id = Column(String(100), primary_key=True)
+    user_id = Column(String(100), ForeignKey('employee_profile.employee_id'))
+    message = Column(Text)
+    response = Column(Text)
+    context_items = Column(JSON)  # IDs of items retrieved from vector DB
+    timestamp = Column(DateTime, default=func.now())

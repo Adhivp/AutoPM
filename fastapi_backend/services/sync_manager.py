@@ -1,11 +1,12 @@
 """Sync manager to control the periodic background sync task.
 
 Provides start/stop/status APIs for the periodic sync so it can be controlled at runtime.
+Enhanced with parallel processing support.
 """
 import asyncio
 from typing import Optional
 from datetime import datetime
-from services.sync_service import sync_all_projects
+from services.enhanced_sync_service import sync_all_projects_parallel
 from database import SessionLocal
 from models.database_models import SyncControl
 
@@ -25,16 +26,24 @@ _sync_task: Optional[asyncio.Task] = None
 
 
 async def _periodic_sync_loop():
-    """Internal coroutine that runs periodic sync every 60s."""
+    """Internal coroutine that runs periodic sync every 60s with enhanced parallel processing."""
     while True:
         try:
             db = SessionLocal()
             try:
-                results = sync_all_projects(db)
+                # Use enhanced parallel sync
+                results = sync_all_projects_parallel(db, max_workers=5)
                 if results.get('status') == 'success':
-                    github_synced = results.get('github_prs_synced', 0)
-                    jira_synced = results.get('jira_issues_synced', 0)
-                    print(f"⏰ Periodic sync completed: {github_synced} PRs, {jira_synced} issues")
+                    github_prs = results.get('github_prs_synced', 0)
+                    github_issues = results.get('github_issues_synced', 0)
+                    github_comments = results.get('github_comments_synced', 0)
+                    jira_issues = results.get('jira_issues_synced', 0)
+                    jira_comments = results.get('jira_comments_synced', 0)
+                    duration = results.get('duration_seconds', 0)
+                    print(f"⏰ Periodic sync completed in {duration:.2f}s: "
+                          f"{github_prs} PRs, {github_issues} issues, "
+                          f"{github_comments} GitHub comments, "
+                          f"{jira_issues} Jira tasks, {jira_comments} Jira comments")
                 else:
                     print(f"✗ Periodic sync error: {results.get('message')}")
             finally:
