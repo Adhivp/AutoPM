@@ -14,12 +14,59 @@ body {
   color: rgb(17 24 39);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .dark body {
   background-color: rgb(17 24 39);
   color: rgb(243 244 246);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom Animations */
+@keyframes blob {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(20px, -50px) scale(1.1);
+  }
+  50% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  75% {
+    transform: translate(50px, 50px) scale(1.05);
+  }
+}
+
+@keyframes gradient {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.animate-blob {
+  animation: blob 7s ease-in-out infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient 3s ease infinite;
 }
 
 .btn-primary {
@@ -28,19 +75,41 @@ body {
   color: white;
   border-radius: 0.5rem;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   box-shadow: 0 4px 6px -1px rgb(20 184 166 / 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(to right, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
 }
 
 .btn-primary:hover {
   background: linear-gradient(to right, rgb(13 148 136), rgb(20 184 166));
-  box-shadow: 0 10px 15px -3px rgb(20 184 166 / 0.4);
+  box-shadow: 0 10px 20px -3px rgb(20 184 166 / 0.5);
   transform: translateY(-2px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
 }
 
 .btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btn-secondary {
@@ -50,21 +119,23 @@ body {
   border: 2px solid rgb(20 184 166);
   border-radius: 0.5rem;
   font-weight: 600;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .dark .btn-secondary {
-  background-color: transparent;
+  background-color: rgba(20, 184, 166, 0.1);
   color: rgb(45 212 191);
   border-color: rgb(45 212 191);
 }
 
 .btn-secondary:hover {
   background-color: rgb(240 253 250);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgb(20 184 166 / 0.2);
 }
 
 .dark .btn-secondary:hover {
-  background-color: rgb(20 184 166 / 0.1);
+  background-color: rgb(20 184 166 / 0.2);
 }
 
 .btn-secondary:disabled {
@@ -79,11 +150,23 @@ body {
   border: 1px solid rgb(209 213 219);
   border-radius: 0.5rem;
   font-weight: 500;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+}
+
+.dark .btn-outline {
+  color: rgb(209 213 219);
+  border-color: rgb(75 85 99);
 }
 
 .btn-outline:hover {
   background-color: rgb(249 250 251);
+  border-color: rgb(156 163 175);
+  transform: translateY(-1px);
+}
+
+.dark .btn-outline:hover {
+  background-color: rgb(31 41 55);
+  border-color: rgb(107 114 128);
 }
 
 .btn-outline:disabled {
@@ -94,34 +177,62 @@ body {
 .input-field {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid rgb(209 213 219);
+  background-color: white;
+  border: 2px solid rgb(229 231 235);
   border-radius: 0.5rem;
   outline: none;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  color: rgb(17 24 39);
+}
+
+.dark .input-field {
+  background-color: rgb(31 41 55);
+  border-color: rgb(55 65 81);
+  color: rgb(243 244 246);
 }
 
 .input-field:focus {
   border-color: rgb(20 184 166);
-  box-shadow: 0 0 0 3px rgb(20 184 166 / 0.2);
+  box-shadow: 0 0 0 3px rgb(20 184 166 / 0.1);
   outline: 2px solid transparent;
   outline-offset: 2px;
 }
 
 .dark .input-field:focus {
   border-color: rgb(45 212 191);
-  box-shadow: 0 0 0 3px rgb(45 212 191 / 0.2);
+  box-shadow: 0 0 0 3px rgb(45 212 191 / 0.1);
+}
+
+.input-field::placeholder {
+  color: rgb(156 163 175);
+}
+
+.dark .input-field::placeholder {
+  color: rgb(107 114 128);
 }
 
 .card {
   background-color: white;
   border-radius: 0.75rem;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   padding: 1.5rem;
-  transition: box-shadow 0.3s;
+  transition: all 0.3s ease;
+  border: 1px solid rgb(229 231 235);
+}
+
+.dark .card {
+  background-color: rgb(31 41 55);
+  border-color: rgb(55 65 81);
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.3);
 }
 
 .card:hover {
-  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  transform: translateY(-2px);
+}
+
+.dark .card:hover {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.3);
 }
 
 .section-title {
@@ -129,6 +240,10 @@ body {
   font-weight: 700;
   color: rgb(17 24 39);
   margin-bottom: 1rem;
+}
+
+.dark .section-title {
+  color: rgb(243 244 246);
 }
 
 @media (min-width: 768px) {
@@ -139,6 +254,41 @@ body {
 
 .section-subtitle {
   font-size: 1.125rem;
-  color: rgb(75 85 99);
+  color: rgb(107 114 128);
   margin-bottom: 2rem;
+}
+
+.dark .section-subtitle {
+  color: rgb(156 163 175);
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgb(243 244 246);
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: rgb(17 24 39);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(209 213 219);
+  border-radius: 5px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgb(55 65 81);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(156 163 175);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgb(75 85 99);
 }
