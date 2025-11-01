@@ -393,7 +393,8 @@ class VectorDatabaseService:
         query: str,
         content_types: List[str] = None,
         project_ids: List[str] = None,
-        n_results: int = 10
+        n_results: int = 10,
+        min_similarity_score: float = 0.3
     ) -> List[Dict[str, Any]]:
         """Perform semantic search across all content
         
@@ -440,6 +441,15 @@ class VectorDatabaseService:
                     # Process results
                     if search_results and search_results['ids']:
                         for i, doc_id in enumerate(search_results['ids'][0]):
+                            # Convert distance to similarity score (1 - normalized_distance)
+                            # ChromaDB uses L2 distance, smaller is better
+                            distance = search_results['distances'][0][i]
+                            similarity_score = 1.0 / (1.0 + distance)  # Convert to similarity
+                            
+                            # Filter by minimum similarity score
+                            if similarity_score < min_similarity_score:
+                                continue
+                            
                             result = {
                                 "id": doc_id,
                                 "content_type": content_type,

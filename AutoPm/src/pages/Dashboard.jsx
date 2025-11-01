@@ -7,19 +7,26 @@ import {
   AlertCircle,
   CheckCircle,
   Clock,
-  Activity
+  Activity,
+  Code,
+  Trophy,
+  AlertTriangle,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { dataAPI } from '../utils/api';
+import { dataAPI, insightsAPI } from '../utils/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [insights, setInsights] = useState([]);
+  const [insightsLoading, setInsightsLoading] = useState(true);
 
   useEffect(() => {
     fetchDashboardStats();
+    fetchAIInsights();
   }, []);
 
   const fetchDashboardStats = async () => {
@@ -69,32 +76,38 @@ const Dashboard = () => {
     }
   };
 
-  const recentActivities = [
-    {
-      icon: <CheckCircle className="w-5 h-5 text-green-500" />,
-      title: 'Task completed',
-      description: 'API integration finished by John Doe',
-      time: '5 minutes ago'
-    },
-    {
-      icon: <AlertCircle className="w-5 h-5 text-yellow-500" />,
-      title: 'Risk detected',
-      description: 'Project deadline approaching for Mobile App',
-      time: '1 hour ago'
-    },
-    {
-      icon: <Users className="w-5 h-5 text-blue-500" />,
-      title: 'Team update',
-      description: 'Sarah joined the Design team',
-      time: '2 hours ago'
-    },
-    {
-      icon: <Activity className="w-5 h-5 text-purple-500" />,
-      title: 'Dashboard updated',
-      description: 'New metrics available for Q4',
-      time: '1 day ago'
+  const fetchAIInsights = async () => {
+    try {
+      setInsightsLoading(true);
+      const response = await insightsAPI.generateInsights();
+      
+      // Map insights to UI format with icons
+      const insightIconMap = {
+        project_health: { icon: Activity, color: 'text-blue-500', bgColor: 'bg-blue-50 dark:bg-blue-900/20' },
+        team_performance: { icon: Users, color: 'text-green-500', bgColor: 'bg-green-50 dark:bg-green-900/20' },
+        code_quality: { icon: Code, color: 'text-purple-500', bgColor: 'bg-purple-50 dark:bg-purple-900/20' },
+        blockers: { icon: AlertCircle, color: 'text-red-500', bgColor: 'bg-red-50 dark:bg-red-900/20' },
+        upcoming_risks: { icon: AlertTriangle, color: 'text-yellow-500', bgColor: 'bg-yellow-50 dark:bg-yellow-900/20' },
+        recent_achievements: { icon: Trophy, color: 'text-teal-500', bgColor: 'bg-teal-50 dark:bg-teal-900/20' }
+      };
+
+      const formattedInsights = response.data.map(insight => {
+        const config = insightIconMap[insight.insight_type] || insightIconMap.project_health;
+        return {
+          ...insight,
+          iconConfig: config
+        };
+      });
+
+      setInsights(formattedInsights);
+    } catch (err) {
+      console.error('Error fetching AI insights:', err);
+      // Set empty insights on error
+      setInsights([]);
+    } finally {
+      setInsightsLoading(false);
     }
-  ];
+  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -201,7 +214,7 @@ const Dashboard = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Activity */}
+          {/* AI Insights */}
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -209,38 +222,76 @@ const Dashboard = () => {
             className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-primary-500/10 p-6 border border-transparent dark:border-gray-700"
           >
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Recent Activity</h2>
-              <button className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
-                View All
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-6 h-6 text-primary-500" />
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white">AI Insights</h2>
+              </div>
+              <button 
+                onClick={fetchAIInsights}
+                className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium flex items-center gap-1"
+              >
+                <Activity className="w-4 h-4" />
+                Refresh
               </button>
             </div>
             
             <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-start space-x-4 p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg transition-colors"
-                >
-                  <div className="flex-shrink-0 mt-1">
-                    {activity.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">
-                      {activity.title}
-                    </p>
-                    <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                      {activity.description}
-                    </p>
-                    <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
-                      <Clock className="w-3 h-3 mr-1" />
-                      {activity.time}
+              {insightsLoading ? (
+                // Loading skeleton
+                Array.from({ length: 3 }).map((_, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex items-start space-x-4 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+                  >
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-lg animate-pulse"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-gray-200 dark:bg-gray-600 rounded animate-pulse w-3/4"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded animate-pulse w-full"></div>
+                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded animate-pulse w-5/6"></div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                ))
+              ) : insights.length > 0 ? (
+                insights.map((insight, index) => {
+                  const IconComponent = insight.iconConfig.icon;
+                  return (
+                    <motion.div
+                      key={insight.insight_type}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                      className={`flex items-start space-x-4 p-4 ${insight.iconConfig.bgColor} rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-all`}
+                    >
+                      <div className="flex-shrink-0 mt-1">
+                        <IconComponent className={`w-5 h-5 ${insight.iconConfig.color}`} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white capitalize mb-1">
+                          {insight.insight_type.replace(/_/g, ' ')}
+                        </p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                          {insight.insight}
+                        </p>
+                        {insight.context_count > 0 && (
+                          <div className="flex items-center mt-2 text-xs text-gray-500 dark:text-gray-400">
+                            <Activity className="w-3 h-3 mr-1" />
+                            Based on {insight.context_count} data points
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              ) : (
+                <div className="text-center py-8">
+                  <Sparkles className="w-12 h-12 text-gray-400 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-600 dark:text-gray-400">
+                    No insights available. Sync your data to generate insights.
+                  </p>
+                </div>
+              )}
             </div>
           </motion.div>
 
@@ -268,12 +319,19 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* AI Insights */}
+            {/* Insight Summary */}
             <div className="mt-6 p-4 bg-gradient-to-br from-primary-500 to-teal-500 rounded-lg text-white shadow-lg">
-              <h3 className="font-semibold mb-2">AI Insight</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-5 h-5" />
+                <h3 className="font-semibold">AI-Powered Dashboard</h3>
+              </div>
               <p className="text-sm text-primary-50">
-                Based on current velocity, 2 projects may miss their deadlines. 
-                Consider reallocating resources from Team B.
+                {insightsLoading 
+                  ? "Generating intelligent insights..."
+                  : insights.length > 0 
+                    ? `${insights.length} AI-generated insights available above, powered by semantic search and Gemini AI.`
+                    : "Sync your projects to enable AI insights."
+                }
               </p>
             </div>
           </motion.div>

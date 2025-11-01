@@ -114,4 +114,11 @@ export const syncAPI = {
   getSyncHistory: () => api.get('/api/sync/history'),
 };
 
+// AI Insights API calls
+export const insightsAPI = {
+  generateInsights: (params = {}) => api.get('/api/insights/generate', { params }),
+  generateInsightsBatch: (data) => api.post('/api/insights/generate-batch', data),
+  getAvailableTypes: () => api.get('/api/insights/types'),
+};
+
 export default api;
