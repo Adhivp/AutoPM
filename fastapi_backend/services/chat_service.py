@@ -72,8 +72,7 @@ class AIChatService:
                 query=message,
                 content_types=content_types,
                 project_ids=project_ids,
-                n_results=10,
-                min_similarity_score=min_similarity_score
+                n_results=10
             )
             
             # Step 2: Build context string from retrieved items
