@@ -236,7 +236,7 @@ When you click "Generate AI Summary", the system:
 
 3. **Response is displayed** in natural language
 
-**Model Used**: `gemini-2.0-flash-exp`
+**Model Used**: `gemini-2.5-flash`
 - Fast inference (< 2 seconds)
 - Excellent at structured analysis
 - Provides actionable insights
@@ -339,7 +339,7 @@ Generate AI-powered summary using LLM
 {
   "status": "success",
   "summary": "...",
-  "model_used": "gemini-2.0-flash-exp"
+  "model_used": "gemini-2.5-flash"
 }
 ```
 

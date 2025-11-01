@@ -28,7 +28,7 @@ class AIChatService:
             print("Warning: GEMINI_API_KEY not found. AI chat will not be available.")
             self.genai_client = None
         self.vector_service = get_vector_service()
-        self.model = "gemini-2.0-flash-exp"
+        self.model = "gemini-2.5-flash"
     
     def chat(
         self,

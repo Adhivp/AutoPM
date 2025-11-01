@@ -25,7 +25,7 @@ class AIInsightsService:
             print("Warning: GEMINI_API_KEY not found. AI insights will not be available.")
             self.genai_client = None
         self.vector_service = get_vector_service()
-        self.model = "gemini-2.0-flash-exp"
+        self.model = "gemini-2.5-flash"
     
     def generate_search_terms(self, insight_type: str) -> List[str]:
         """Generate search terms for a specific insight type using Gemini"""
