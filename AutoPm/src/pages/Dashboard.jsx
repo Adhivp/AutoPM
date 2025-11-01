@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   TrendingUp,
@@ -11,13 +12,18 @@ import {
   Code,
   Trophy,
   AlertTriangle,
-  Sparkles
+  Sparkles,
+  Heart,
+  FileText,
+  GitPullRequest,
+  MessageSquare
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { dataAPI, insightsAPI } from '../utils/api';
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -302,20 +308,58 @@ const Dashboard = () => {
             transition={{ duration: 0.5 }}
             className="bg-white dark:bg-gray-800 rounded-xl shadow-md dark:shadow-primary-500/10 p-6 border border-transparent dark:border-gray-700"
           >
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Quick Actions</h2>
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Quick Access</h2>
             
             <div className="space-y-3">
-              <button className="w-full text-left px-4 py-3 bg-primary-50 dark:bg-primary-900/30 text-primary-700 dark:text-primary-400 rounded-lg hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors font-medium">
-                Generate Report
+              <button 
+                onClick={() => navigate('/sentiment')}
+                className="w-full text-left px-4 py-3 bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 text-purple-700 dark:text-purple-400 rounded-lg hover:from-pink-100 hover:to-purple-100 dark:hover:from-pink-900/50 dark:hover:to-purple-900/50 transition-all font-medium flex items-center gap-3 group"
+              >
+                <Heart className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <div>
+                  <div className="font-semibold">Sentiment Analysis</div>
+                  <div className="text-xs opacity-75">Team morale & feedback</div>
+                </div>
               </button>
-              <button className="w-full text-left px-4 py-3 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors font-medium">
-                Create New Project
+              <button 
+                onClick={() => navigate('/projects')}
+                className="w-full text-left px-4 py-3 bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 rounded-lg hover:bg-teal-100 dark:hover:bg-teal-900/50 transition-colors font-medium flex items-center gap-3 group"
+              >
+                <LayoutDashboard className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <div>
+                  <div className="font-semibold">View Projects</div>
+                  <div className="text-xs opacity-75">Manage all projects</div>
+                </div>
               </button>
-              <button className="w-full text-left px-4 py-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors font-medium">
-                Invite Team Member
+              <button 
+                onClick={() => navigate('/tasks')}
+                className="w-full text-left px-4 py-3 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors font-medium flex items-center gap-3 group"
+              >
+                <CheckCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <div>
+                  <div className="font-semibold">View Tasks</div>
+                  <div className="text-xs opacity-75">Track Jira issues</div>
+                </div>
               </button>
-              <button className="w-full text-left px-4 py-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors font-medium">
-                Review Risk Alerts
+              <button 
+                onClick={() => navigate('/github-prs')}
+                className="w-full text-left px-4 py-3 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50 transition-colors font-medium flex items-center gap-3 group"
+              >
+                <GitPullRequest className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <div>
+                  <div className="font-semibold">Pull Requests</div>
+                  <div className="text-xs opacity-75">Code reviews & PRs</div>
+                </div>
+              </button>
+              <button 
+                onClick={() => navigate('/ai-chat')}
+                className="w-full text-left px-4 py-3 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors font-medium flex items-center gap-3 group"
+              >
+                <MessageSquare className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <div>
+                  <div className="font-semibold">AI Chat</div>
+                  <div className="text-xs opacity-75">Ask questions</div>
+                </div>
               </button>
             </div>
 
@@ -336,22 +380,6 @@ const Dashboard = () => {
             </div>
           </motion.div>
         </div>
-
-        {/* Coming Soon Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
-          className="mt-8 bg-gradient-to-r from-primary-500 to-teal-500 rounded-xl shadow-lg dark:shadow-primary-500/20 p-8 text-white text-center"
-        >
-          <h3 className="text-2xl font-bold mb-2">More Features Coming Soon!</h3>
-          <p className="text-primary-50 mb-4">
-            We're working on advanced AI predictions, real-time collaboration, and more integrations.
-          </p>
-          <button className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-md">
-            Stay Updated
-          </button>
-        </motion.div>
       </div>
     </div>
   );

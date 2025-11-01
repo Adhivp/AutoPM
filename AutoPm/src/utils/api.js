@@ -121,4 +121,12 @@ export const insightsAPI = {
   getAvailableTypes: () => api.get('/api/insights/types'),
 };
 
+// Sentiment Analysis API calls
+export const sentimentAPI = {
+  getProjectSentiment: (params = {}) => api.get('/api/sentiment/projects', { params }),
+  getEmployeeSentiment: (params = {}) => api.get('/api/sentiment/employees', { params }),
+  getSentimentTrends: (projectId, params = {}) => api.get(`/api/sentiment/trends/${projectId}`, { params }),
+  getSentimentSummary: () => api.get('/api/sentiment/summary'),
+};
+
 export default api;

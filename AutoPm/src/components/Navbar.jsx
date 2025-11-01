@@ -83,6 +83,12 @@ const Navbar = () => {
                   🤖 AI Chat
                 </Link>
                 <Link 
+                  to="/sentiment" 
+                  className="text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+                >
+                  💝 Sentiment
+                </Link>
+                <Link 
                   to="/profile" 
                   className="flex items-center space-x-2 text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 px-3 py-2 rounded-md text-sm font-medium transition-colors"
                 >
@@ -208,6 +214,13 @@ const Navbar = () => {
                     onClick={() => setMobileMenuOpen(false)}
                   >
                     🤖 AI Chat
+                  </Link>
+                  <Link
+                    to="/sentiment"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-200 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-50 dark:hover:bg-gray-800"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    💝 Sentiment
                   </Link>
                   <Link
                     to="/profile"

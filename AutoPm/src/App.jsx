@@ -17,6 +17,7 @@ import GitHubPRs from './pages/GitHubPRs';
 import GitHubIssues from './pages/GitHubIssues';
 import SyncManagement from './pages/SyncManagement';
 import AIChat from './pages/AIChat';
+import SentimentAnalysis from './pages/SentimentAnalysis';
 import './App.css';
 
 function App() {
@@ -108,6 +109,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AIChat />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/sentiment"
+                  element={
+                    <ProtectedRoute>
+                      <SentimentAnalysis />
                     </ProtectedRoute>
                   }
                 />
