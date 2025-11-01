@@ -24,11 +24,6 @@ class TrainModelRequest(BaseModel):
     force_retrain: Optional[bool] = False
 
 
-class RiskSummaryRequest(BaseModel):
-    project_id: str
-    prediction_data: dict
-
-
 # === ENDPOINTS ===
 
 @router.get("/model/status")
@@ -172,7 +167,7 @@ def predict_all_projects_risk(db: Session = Depends(get_db)):
 
 @router.post("/summary/generate")
 def generate_risk_summary(
-    request: RiskSummaryRequest,
+    request: PredictionRequest,
     db: Session = Depends(get_db)
 ):
     """
@@ -185,6 +180,16 @@ def generate_risk_summary(
     - Action items
     """
     try:
+        # First, get the prediction data
+        risk_service = get_risk_service()
+        prediction = risk_service.predict_risk(db, request.project_id)
+        
+        if prediction.get('status') == 'error':
+            raise HTTPException(
+                status_code=400,
+                detail=prediction.get('message', 'Failed to get prediction data')
+            )
+        
         chat_service = get_chat_service()
         if not chat_service.genai_client:
             raise HTTPException(
@@ -192,7 +197,7 @@ def generate_risk_summary(
                 detail="AI service not available. Please configure GEMINI_API_KEY."
             )
         
-        prediction_data = request.prediction_data
+        prediction_data = prediction
         
         # Create detailed prompt for summary
         prompt = f"""Analyze this project risk prediction and provide a comprehensive summary:

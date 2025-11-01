@@ -670,26 +670,7 @@ export default function RiskPrediction() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleGenerateAISummary(pred.project_id);
-                    }}
-                    disabled={generatingAI}
-                    className="mt-4 w-full px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
-                  >
-                    {generatingAI ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Brain className="w-4 h-4" />
-                        AI Summary
-                      </>
-                    )}
-                  </button>
+
                 </div>
               ))}
             </div>

@@ -1,5 +1,5 @@
 {
-  "trained_at": "2025-11-01T09:47:58.907762",
+  "trained_at": "2025-11-01T10:05:02.659178",
   "n_samples": 50,
   "n_features": 18,
   "feature_names": [
@@ -22,50 +22,50 @@
     "tasks_per_remaining_day",
     "team_size"
   ],
-  "accuracy": 0.8,
-  "cv_mean_score": 0.825,
-  "cv_std_score": 0.1274754878398196,
+  "accuracy": 0.6,
+  "cv_mean_score": 0.85,
+  "cv_std_score": 0.09354143466934853,
   "model_type": "RandomForestClassifier",
   "top_features": [
     [
       "overdue_task_ratio",
-      0.18853000789552088
+      0.185749798179833
     ],
     [
       "build_failure_rate",
-      0.1399747886688412
+      0.1475077484738664
     ],
     [
       "overall_sentiment_score",
-      0.07710353765020642
+      0.10029208604929525
     ],
     [
-      "weekly_message_count",
-      0.07382304208583551
+      "avg_pr_age_days",
+      0.09481731421561058
     ],
     [
       "workload_variance",
-      0.07321891930731707
+      0.06773852073992899
     ],
     [
-      "task_completion_rate",
-      0.06381520221018205
-    ],
-    [
-      "avg_test_coverage_delta",
-      0.06151742899085058
+      "overtime_ratio",
+      0.054936483923744055
     ],
     [
       "project_progress_ratio",
-      0.042691505656595366
+      0.05324207491656443
     ],
     [
-      "dependency_risk_ratio",
-      0.04117952562786965
+      "avg_test_coverage_delta",
+      0.050495255191621694
     ],
     [
-      "blocker_signal_count",
-      0.03451192858396787
+      "weekly_message_count",
+      0.04774881658012104
+    ],
+    [
+      "task_completion_rate",
+      0.04370027307261089
     ]
   ]
 }
