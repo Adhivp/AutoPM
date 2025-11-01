@@ -62,7 +62,7 @@ export default function RiskPrediction() {
     try {
       const response = await api.get('/api/risk/predict/all');
       setPredictions(response.data.predictions || []);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch predictions');
     } finally {
       setLoading(false);
@@ -87,7 +87,9 @@ export default function RiskPrediction() {
     try {
       await new Promise(resolve => setTimeout(resolve, 20000));
       
-      const response = await api.post('/api/risk/model/train');
+      const response = await api.post('/api/risk/model/train', {
+        force_retrain: false
+      });
       
       if (response.data.status === 'success') {
         setTrainingProgress(100);
@@ -114,7 +116,7 @@ export default function RiskPrediction() {
     try {
       const response = await api.post('/api/risk/summary/generate', { project_id: projectId });
       setAiSummary(response.data.summary);
-    } catch (err) {
+    } catch {
       setError('Failed to generate AI summary');
     } finally {
       setGeneratingAI(false);
@@ -643,8 +645,7 @@ export default function RiskPrediction() {
               {predictions.map((pred) => (
                 <div
                   key={pred.project_id}
-                  className={`rounded-lg p-5 border transition-all duration-200 hover:shadow-lg cursor-pointer ${getRiskColor(pred.risk_category)}`}
-                  onClick={() => setSelectedProject(pred)}
+                  className={`rounded-lg p-5 border transition-all duration-200 hover:shadow-lg ${getRiskColor(pred.risk_category)}`}
                 >
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
