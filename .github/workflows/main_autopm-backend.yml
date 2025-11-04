@@ -65,4 +65,5 @@ jobs:
         with:
           app-name: 'autopm-backend'
           slot-name: 'Production'
-          package: 'fastapi_backend'
+          package: '.'
+
