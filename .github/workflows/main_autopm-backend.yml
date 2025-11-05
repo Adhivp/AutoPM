@@ -36,7 +36,7 @@ jobs:
         with:
           name: python-app
           path: |
-            fastapi_backend/
+            fastapi_backend/**
             !fastapi_backend/antenv/
 
   deploy:
@@ -66,4 +66,5 @@ jobs:
           app-name: 'autopm-backend'
           slot-name: 'Production'
           package: '.'
+
 
